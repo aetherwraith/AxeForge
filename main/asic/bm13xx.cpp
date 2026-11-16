@@ -81,10 +81,15 @@ static uint8_t crc5(const uint8_t *data, int len)
 
 static uint16_t crc16_false(const uint8_t *data, int len)
 {
+    static constexpr uint16_t LUT[16] = {
+        0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
+        0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
+    };
     uint16_t crc = 0xffff;
     for (int i = 0; i < len; i++) {
-        crc ^= (uint16_t) data[i] << 8;
-        for (int b = 0; b < 8; b++) crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : (crc << 1);
+        uint8_t d = data[i];
+        crc = (crc << 4) ^ LUT[((crc >> 12) ^ (d >> 4)) & 0xf];
+        crc = (crc << 4) ^ LUT[((crc >> 12) ^ d) & 0xf];
     }
     return crc;
 }
@@ -716,18 +721,30 @@ uint8_t send_job(uint32_t counter, AsicJob &job)
     return job.job_id;
 }
 
+static bool read_synced_frame(uint8_t *b, int len, int timeout_ms)
+{
+    int n = uart_read_bytes(UART, b, len, pdMS_TO_TICKS(timeout_ms));
+    if (n <= 0) return false;
+    if (n == len && b[0] == 0xAA && b[1] == 0x55) return true;
+    // Scan for 0xAA 0x55 sync inside what we already read instead of flushing queued frames.
+    for (int i = 1; i < n; i++) {
+        if (b[i] != 0xAA) continue;
+        if (i + 1 < n && b[i + 1] != 0x55) continue;
+        int keep = n - i;
+        memmove(b, b + i, keep);
+        int rest = uart_read_bytes(UART, b + keep, len - keep, pdMS_TO_TICKS(10));
+        return rest == len - keep && b[0] == 0xAA && b[1] == 0x55;
+    }
+    return false;
+}
+
 #if AF_ASIC_BM1397
 // 9-byte frames: AA 55, nonce or register value (4), midstate number or chip
 // address, job id or register, CRC with bit 7 set on a nonce
 bool receive(AsicResult &out, int timeout_ms)
 {
     uint8_t b[9];
-    int n = uart_read_bytes(UART, b, sizeof(b), pdMS_TO_TICKS(timeout_ms));
-    if (n <= 0) return false;
-    if (n != 9 || b[0] != 0xAA || b[1] != 0x55) {
-        uart_flush_input(UART);
-        return false;
-    }
+    if (!read_synced_frame(b, sizeof(b), timeout_ms)) return false;
     uint32_t nonce;
     memcpy(&nonce, b + 2, 4);
     if (!(b[8] & 0x80)) {
@@ -750,12 +767,7 @@ bool receive(AsicResult &out, int timeout_ms)
 bool receive(AsicResult &out, int timeout_ms)
 {
     uint8_t b[11];
-    int n = uart_read_bytes(UART, b, sizeof(b), pdMS_TO_TICKS(timeout_ms));
-    if (n <= 0) return false;
-    if (n != 11 || b[0] != 0xAA || b[1] != 0x55) {
-        uart_flush_input(UART);
-        return false;
-    }
+    if (!read_synced_frame(b, sizeof(b), timeout_ms)) return false;
     uint32_t nonce;
     memcpy(&nonce, b + 2, 4);
     uint8_t midstate = b[6];

@@ -80,13 +80,14 @@ static bool via_setup_ap(httpd_req_t *req);
 
 static esp_err_t send_json(httpd_req_t *req, cJSON *root)
 {
-    char *out = cJSON_PrintUnformatted(root);
+    char *out = root ? cJSON_PrintUnformatted(root) : nullptr;
+    cJSON_Delete(root);
+    if (!out) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
-    httpd_resp_sendstr(req, out);
+    esp_err_t err = httpd_resp_sendstr(req, out);
     free(out);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return err;
 }
 
 // Reads the full request body (NUL terminated, heap). NULL if empty/too big.
@@ -94,6 +95,7 @@ static char *recv_body(httpd_req_t *req, size_t max)
 {
     if (req->content_len <= 0 || req->content_len >= max) return nullptr;
     char *b = (char *) malloc(req->content_len + 1);
+    if (!b) return nullptr;
     int got = 0;
     while (got < req->content_len) {
         int n = httpd_req_recv(req, b + got, req->content_len - got);
@@ -654,11 +656,10 @@ static void schedule_reboot(httpd_req_t *req)
 
 static esp_err_t settings_post(httpd_req_t *req)
 {
-    char body[1536];
-    int len = httpd_req_recv(req, body, sizeof(body) - 1);
-    if (len <= 0) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty");
-    body[len] = 0;
+    char *body = recv_body(req, 1536);
+    if (!body) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty");
     cJSON *j = json_parse(body);
+    free(body);
     if (!j) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad json");
 
     if (via_setup_ap(req)) {
@@ -1048,14 +1049,49 @@ static esp_err_t logs_get(httpd_req_t *req)
     if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK && httpd_query_key_value(q, "since", v, sizeof(v)) == ESP_OK)
         since = strtoul(v, NULL, 10);
     const size_t max = 12 * 1024;
-    char *text = (char *) malloc(max);
+    char *text = (char *) heap_caps_malloc(max, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!text) text = (char *) malloc(max);
+    if (!text) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
     uint32_t next = logbuf::read(since, text, max);
-    cJSON *r = cJSON_CreateObject();
-    cJSON_AddNumberToObject(r, "next", next);
-    cJSON_AddNumberToObject(r, "ms", esp_log_timestamp());  // the log prefix clock, so the page can show wall time
-    cJSON_AddStringToObject(r, "text", text);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    char hdr[96];
+    int hlen = snprintf(hdr, sizeof(hdr), "{\"next\":%lu,\"ms\":%lu,\"text\":\"",
+                        (unsigned long) next, (unsigned long) esp_log_timestamp());
+    httpd_resp_send_chunk(req, hdr, hlen);
+    char esc[512];
+    size_t eo = 0;
+    auto flush_esc = [&]() {
+        if (eo > 0) {
+            httpd_resp_send_chunk(req, esc, eo);
+            eo = 0;
+        }
+    };
+    for (const char *p = text; *p; p++) {
+        uint8_t c = (uint8_t) *p;
+        if (eo + 6 >= sizeof(esc)) flush_esc();
+        if (c == '"' || c == '\\') {
+            esc[eo++] = '\\';
+            esc[eo++] = c;
+        } else if (c == '\n') {
+            esc[eo++] = '\\';
+            esc[eo++] = 'n';
+        } else if (c == '\r') {
+            esc[eo++] = '\\';
+            esc[eo++] = 'r';
+        } else if (c == '\t') {
+            esc[eo++] = '\\';
+            esc[eo++] = 't';
+        } else if (c < 0x20) {
+            eo += snprintf(esc + eo, sizeof(esc) - eo, "\\u%04x", c);
+        } else {
+            esc[eo++] = (char) c;
+        }
+    }
+    flush_esc();
     free(text);
-    return send_json(req, r);
+    httpd_resp_send_chunk(req, "\"}", 2);
+    return httpd_resp_send_chunk(req, NULL, 0);
 }
 
 // ------------------------------------------------------------------ screen
@@ -1081,10 +1117,14 @@ static esp_err_t screen_get(httpd_req_t *req)
     put32(54, 0xF800);
     put32(58, 0x07E0);
     put32(62, 0x001F);
+    uint8_t *line = (uint8_t *) malloc(row * 8);
+    if (!line) {
+        display::free_snapshot(img);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
+    }
     httpd_resp_set_type(req, "image/bmp");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
     httpd_resp_send_chunk(req, (const char *) head, sizeof(head));
-    uint8_t *line = (uint8_t *) malloc(row * 8);
     const uint8_t *px = img->data;
     for (int y = 0; y < h; y += 8) {
         int rows = h - y < 8 ? h - y : 8;
@@ -1405,6 +1445,19 @@ static esp_err_t api_guard(httpd_req_t *req)
         httpd_resp_set_status(req, "403 Forbidden");
         return httpd_resp_sendstr(req, "Not available on the setup network: connect the miner to your Wi-Fi first.");
     }
+    if (otp::enabled() && strcmp(req->uri, "/api/otp") != 0 &&
+        (req->method != HTTP_GET ||
+         strcmp(req->uri, "/api/pools") == 0 ||
+         strcmp(req->uri, "/api/settings") == 0 ||
+         strncmp(req->uri, "/api/logs", 9) == 0)) {
+        char tok[40];
+        session_of(req, tok, sizeof(tok));
+        if (!otp::session_ok(tok)) {
+            httpd_resp_set_status(req, "401 Unauthorized");
+            httpd_resp_set_type(req, "application/json");
+            return httpd_resp_sendstr(req, "{\"login\":true,\"error\":\"Log in with your authenticator code.\"}");
+        }
+    }
     if (req->method != HTTP_GET) {
         if (get_hdr(req, "X-AxeForge", v, sizeof(v)) != 1) return deny(req, "missing X-AxeForge header");
         int o = get_hdr(req, "Origin", v, sizeof(v));
@@ -1412,16 +1465,6 @@ static esp_err_t api_guard(httpd_req_t *req)
         int f = get_hdr(req, "Sec-Fetch-Site", v, sizeof(v));
         if (f < 0 || (f == 1 && strcmp(v, "same-origin") != 0 && strcmp(v, "none") != 0))
             return deny(req, "cross-site request");
-        // with two-factor login on, changes need a session from a valid code
-        if (otp::enabled() && strcmp(req->uri, "/api/otp") != 0) {
-            char tok[40];
-            session_of(req, tok, sizeof(tok));
-            if (!otp::session_ok(tok)) {
-                httpd_resp_set_status(req, "401 Unauthorized");
-                httpd_resp_set_type(req, "application/json");
-                return httpd_resp_sendstr(req, "{\"login\":true,\"error\":\"Log in with your authenticator code.\"}");
-            }
-        }
         // every change to the miner leaves a trace of who made it
         char ip[48];
         peer_ip(req, ip, sizeof(ip));

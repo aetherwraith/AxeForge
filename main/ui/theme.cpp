@@ -183,7 +183,7 @@ void set_text_fmt(lv_obj_t *label, const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
-    if (current() != FORGE) remap_codes(buf);
+    if (current() != FORGE && strchr(buf, '#')) remap_codes(buf);
     lv_label_set_text(label, buf);
 }
 
@@ -202,15 +202,17 @@ static void starfield_cb(lv_event_t *e)
     d.radius = LV_RADIUS_CIRCLE;
     uint32_t s = 0x5eed5a7u;
     auto next = [&]() { return s = s * 1664525u + 1013904223u; };
+    const lv_area_t *clip = ctx->clip_area;
     const int stars = w * h / 1500;
     for (int i = 0; i < stars; i++) {
         lv_coord_t x = (lv_coord_t) ((next() >> 8) % w);
         lv_coord_t y = (lv_coord_t) ((next() >> 8) % h);
         uint32_t k = next() >> 28;  // 0..15
         lv_coord_t size = k >= 14 ? 2 : 1;
+        lv_area_t a = {x, y, (lv_coord_t) (x + size - 1), (lv_coord_t) (y + size - 1)};
+        if (clip && (a.x2 < clip->x1 || a.x1 > clip->x2 || a.y2 < clip->y1 || a.y1 > clip->y2)) continue;
         d.bg_color = lv_color_hex(k >= 13 ? 0xff9a3d : 0xffffff);  // white stars, a few orange
         d.bg_opa = (lv_opa_t) (70 + k * 11);
-        lv_area_t a = {x, y, (lv_coord_t) (x + size - 1), (lv_coord_t) (y + size - 1)};
         lv_draw_rect(ctx, &d, &a);
     }
 }

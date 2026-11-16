@@ -757,16 +757,22 @@ static void refresh_dashboard()
     lv_label_set_text(s_tune_note, t.note);
     lv_bar_set_value(s_tune_bar, t.phase == TunerPhase::Locked || t.phase == TunerPhase::Off ? 100 : t.progress, LV_ANIM_ON);
 
-    // chart: rebuild from the ring buffer (cheap: 120 points)
-    float vmax = 1;
-    for (int i = 0; i < AF_HISTORY_LEN; i++)
-        if (s.history[i] > vmax) vmax = s.history[i];
-    lv_chart_set_range(s_chart, LV_CHART_AXIS_PRIMARY_Y, 0, (lv_coord_t) (vmax * 1.1f));
-    for (int i = 0; i < AF_HISTORY_LEN; i++) {
-        float h = s.history[(s.history_head + i) % AF_HISTORY_LEN];
-        s_series->y_points[i] = h > 0 ? (lv_coord_t) h : LV_CHART_POINT_NONE;
+    // chart: rebuild from the ring buffer only when history advances or chart is rebuilt
+    static uint16_t s_last_hist_head = 0xffff;
+    static lv_obj_t *s_last_chart = nullptr;
+    if (s_chart != s_last_chart || s.history_head != s_last_hist_head) {
+        s_last_chart = s_chart;
+        s_last_hist_head = s.history_head;
+        float vmax = 1;
+        for (int i = 0; i < AF_HISTORY_LEN; i++)
+            if (s.history[i] > vmax) vmax = s.history[i];
+        lv_chart_set_range(s_chart, LV_CHART_AXIS_PRIMARY_Y, 0, (lv_coord_t) (vmax * 1.1f));
+        for (int i = 0; i < AF_HISTORY_LEN; i++) {
+            float h = s.history[(s.history_head + i) % AF_HISTORY_LEN];
+            s_series->y_points[i] = h > 0 ? (lv_coord_t) h : LV_CHART_POINT_NONE;
+        }
+        lv_chart_refresh(s_chart);
     }
-    lv_chart_refresh(s_chart);
 }
 
 static void refresh_chips()
@@ -999,6 +1005,7 @@ void build()
     }
 
     // first boot without Wi-Fi: open on the setup QR
+    s_qr_text[0] = 0;
     load_order();
     if (settings::get().wifi_ssid[0]) show_page(settings::get().default_page % s_order_n);
     else show_kind(K_SYSTEM);
@@ -1031,7 +1038,11 @@ void reload_pages()
     if (display::small()) return ui_small::reload_pages();
     s_req_pages_reload = true;
 }
-int current_page() { return s_page; }
+int current_page()
+{
+    if (display::small()) return ui_small::current_page();
+    return s_page;
+}
 char current_kind()
 {
     if (display::small()) return ui_small::current_kind();

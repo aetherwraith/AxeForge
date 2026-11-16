@@ -53,7 +53,7 @@ static float slinear11_to_float(uint16_t value)
     int32_t mantissa = value & 0x7ff;
     if (exponent & 0x10) exponent |= 0xffffffe0;
     if (mantissa & 0x400) mantissa |= 0xfffff800;
-    return mantissa * powf(2.0f, (float) exponent);
+    return ldexpf((float) mantissa, exponent);
 }
 
 static uint16_t float_to_slinear11(float x)
@@ -61,7 +61,7 @@ static uint16_t float_to_slinear11(float x)
     if (x <= 0.0f) return 0;
     int32_t e = -16, m = 0;
     for (; e <= 15; e++) {
-        m = (int32_t) roundf(x / powf(2.0f, (float) e));
+        m = (int32_t) roundf(ldexpf(x, -e));
         if (m >= 0 && m <= 1023) break;
     }
     if (e > 15) return 0;
@@ -115,8 +115,6 @@ bool init(int phases, int imax_a, float ifault_a)
     const uint8_t on_off = 0b00010111;
     i2c_bus::send_cmd(ADDR, CLEAR_FAULTS);
     i2c_bus::send_cmd(ADDR, RESTORE_DEFAULT_ALL);
-    i2c_bus::write_byte(ADDR, ON_OFF_CONFIG, on_off);
-    i2c_bus::write_byte(ADDR, MFR_12, 0x20);
     i2c_bus::write_byte(ADDR, MFR_10_IMAX, (uint8_t) imax_a);
     i2c_bus::write_byte(ADDR, MFR_13, 0x89);
     i2c_bus::write_byte(ADDR, ON_OFF_CONFIG, on_off);

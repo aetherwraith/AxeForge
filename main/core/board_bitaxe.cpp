@@ -363,7 +363,7 @@ void read_telemetry()
             return;
         }
 #endif
-        float p = tps546::pout();
+        float p = tps546::pout(vo, g_state.iout);
         if (!isnan(p)) g_state.pin = p + POWER_OFFSET_W;
         g_state.iin = g_state.vin > 1 ? g_state.pin / g_state.vin : 0;
         return;

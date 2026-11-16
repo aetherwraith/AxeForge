@@ -153,16 +153,19 @@ void build(const StratumJob &sj, const char *extranonce1, uint32_t en2, int en2_
     // coinbase = coinb1 + en1 + en2 + coinb2
     size_t l1 = strlen(sj.coinb1), le1 = strlen(extranonce1), le2 = strlen(w.extranonce2), l2 = strlen(sj.coinb2);
     size_t bin_len = (l1 + le1 + le2 + l2) / 2;
-    uint8_t *cb = (uint8_t *) malloc(bin_len);
+    uint8_t cb_stack[512];
+    uint8_t *cb_heap = bin_len > sizeof(cb_stack) ? (uint8_t *) malloc(bin_len) : nullptr;
+    uint8_t *cb = cb_heap ? cb_heap : cb_stack;
+    size_t cap = cb_heap ? bin_len : sizeof(cb_stack);
     size_t o = 0;
-    o += hex2bin(sj.coinb1, cb + o, bin_len - o);
-    o += hex2bin(extranonce1, cb + o, bin_len - o);
-    o += hex2bin(w.extranonce2, cb + o, bin_len - o);
-    o += hex2bin(sj.coinb2, cb + o, bin_len - o);
+    o += hex2bin(sj.coinb1, cb + o, cap - o);
+    o += hex2bin(extranonce1, cb + o, cap - o);
+    o += hex2bin(w.extranonce2, cb + o, cap - o);
+    o += hex2bin(sj.coinb2, cb + o, cap - o);
 
     uint8_t pair[64];
     dsha256(cb, o, pair);
-    free(cb);
+    free(cb_heap);
     for (int i = 0; i < sj.n_merkle; i++) {
         memcpy(pair + 32, sj.merkle[i], 32);
         dsha256(pair, 64, pair);

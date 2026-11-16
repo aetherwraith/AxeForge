@@ -544,6 +544,7 @@ static void tuner_task(void *)
             if (!trim(best_f, best_mv, best_ghs)) continue;
             lock_point(best_f, best_mv, best_ghs);
             if (!tune_chips(best_f, best_ghs)) continue;
+            lock_point(best_f, best_mv, best_ghs);
         } else {
             set_offsets(cfg.chip_off);  // back from manual mode: the saved per-chip clocks again
             apply(cfg.tuned_freq, cfg.tuned_mv);

@@ -125,7 +125,7 @@ static float slinear11_to_float(uint16_t value)
     int32_t mantissa = value & 0x7ff;
     if (exponent & 0x10) exponent |= 0xffffffe0;
     if (mantissa & 0x400) mantissa |= 0xfffff800;
-    return mantissa * powf(2.0f, (float) exponent);
+    return ldexpf((float) mantissa, exponent);
 }
 
 static uint16_t float_to_slinear11(float x)
@@ -133,15 +133,15 @@ static uint16_t float_to_slinear11(float x)
     if (x <= 0.0f) return 0;
     int32_t e = -16, m = 0;
     for (; e <= 15; e++) {
-        m = (int32_t) roundf(x / powf(2.0f, (float) e));
+        m = (int32_t) roundf(ldexpf(x, -e));
         if (m >= 0 && m <= 1023) break;
     }
     if (e > 15) return 0;
     return (uint16_t) (((e & 0x1f) << 11) | (m & 0x7ff));
 }
 
-static float ulinear16_to_float(uint16_t v) { return v * powf(2.0f, (float) s_vout_exp); }
-static uint16_t float_to_ulinear16(float x) { return (uint16_t) lroundf(x / powf(2.0f, (float) s_vout_exp)); }
+static float ulinear16_to_float(uint16_t v) { return ldexpf((float) v, s_vout_exp); }
+static uint16_t float_to_ulinear16(float x) { return (uint16_t) lroundf(ldexpf(x, -s_vout_exp)); }
 
 static const char *cmd_name(uint8_t cmd)
 {
@@ -382,7 +382,8 @@ float vout()
     return ulinear16_to_float(v) / s_prof->domains;
 }
 
-float pout() { return vout() * s_prof->domains * iout(); }
+float pout(float vout_val, float iout_val) { return vout_val * s_prof->domains * iout_val; }
+float pout() { return pout(vout(), iout()); }
 
 // Why the output went away: every status register in one line, for the log.
 void log_status(const char *why)

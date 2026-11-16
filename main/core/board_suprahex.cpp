@@ -221,7 +221,7 @@ void read_telemetry()
     float v = tps546::vout();
     if (!isnan(v)) g_state.vout = v;  // a failed read keeps the last value
     g_state.iout = tps546::iout();
-    float p = tps546::pout();
+    float p = tps546::pout(v, g_state.iout);
     if (!isnan(p)) g_state.pin = p + POWER_OFFSET_W;
     g_state.iin = g_state.vin > 1 ? g_state.pin / g_state.vin : 0;
 }

@@ -120,7 +120,7 @@ void start()
     dev.queue_size = 20;
     eth_w5500_config_t w5500 = ETH_W5500_DEFAULT_CONFIG(ETH_HOST, &dev);
     w5500.int_gpio_num = -1;
-    w5500.poll_period_ms = 1;  // no interrupt line on the adapter
+    w5500.poll_period_ms = 5;  // no interrupt line on the adapter
     eth_mac_config_t mac_cfg = ETH_MAC_DEFAULT_CONFIG();
     eth_phy_config_t phy_cfg = ETH_PHY_DEFAULT_CONFIG();
     phy_cfg.reset_gpio_num = -1;

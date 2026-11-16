@@ -230,15 +230,18 @@ static void build_custom(int pi)
     CustomPage &cp = s_custom[pi];
     cp.n = 0;
     cJSON *root = cJSON_Parse(layout_store::json());
-    cJSON *list = cJSON_GetArrayItem(cJSON_GetObjectItem(root, "pages"), pi);
+    cJSON *pages = root ? cJSON_GetObjectItem(root, "pages") : nullptr;
+    cJSON *list = cJSON_IsArray(pages) ? cJSON_GetArrayItem(pages, pi) : nullptr;
     cJSON *it;
-    cJSON_ArrayForEach(it, list)
+    if (cJSON_IsArray(list)) cJSON_ArrayForEach(it, list)
     {
         if (cp.n >= MAX_WIDGETS) break;
         cJSON *t = cJSON_GetObjectItem(it, "t"), *txt = cJSON_GetObjectItem(it, "txt");
+        cJSON *jx = cJSON_GetObjectItem(it, "x"), *jy = cJSON_GetObjectItem(it, "y");
+        cJSON *jw = cJSON_GetObjectItem(it, "w"), *jh = cJSON_GetObjectItem(it, "h");
+        if (!cJSON_IsNumber(jx) || !cJSON_IsNumber(jy) || !cJSON_IsNumber(jw) || !cJSON_IsNumber(jh)) continue;
         build_widget(page, cp.w[cp.n++], cJSON_IsString(t) ? t->valuestring : "?",
-                     cJSON_GetObjectItem(it, "x")->valueint, cJSON_GetObjectItem(it, "y")->valueint,
-                     cJSON_GetObjectItem(it, "w")->valueint, cJSON_GetObjectItem(it, "h")->valueint,
+                     jx->valueint, jy->valueint, jw->valueint, jh->valueint,
                      cJSON_IsString(txt) ? txt->valuestring : "");
     }
     cJSON_Delete(root);

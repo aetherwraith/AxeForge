@@ -586,7 +586,8 @@ static void refresh_cb(lv_timer_t *)
     if (s_req_reload) {
         s_req_reload = false;
         int k = s_order[s_page];
-        load_order();
+        s_qr_text[0] = 0;
+    load_order();
         s_page = 0;
         show_kind(k);
         show_page(s_page);
@@ -648,6 +649,7 @@ void build()
         lv_obj_add_flag(s_banner, LV_OBJ_FLAG_HIDDEN);
     }
 
+    s_qr_text[0] = 0;
     load_order();
     if (settings::get().wifi_ssid[0]) show_page(settings::get().default_page % s_order_n);
     else show_kind(K_SYSTEM);
@@ -662,6 +664,8 @@ void on_button(int index)
     s_last_input_ms = lv_tick_get();
     show_page(s_page + (index == 0 ? 1 : -1));
 }
+
+int current_page() { return s_page; }
 
 void on_long_press(int index)
 {

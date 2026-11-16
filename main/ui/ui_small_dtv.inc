@@ -415,7 +415,7 @@ static void dtv_refresh_system()
         lv_label_set_text(d_val[4], "");
     } else {
         snprintf(qr, sizeof(qr), "http://%s/", s.ip);
-        uint32_t u = (uint32_t) (esp_timer_get_time() / 1000000);
+        uint32_t u = s.uptime_s;
         lv_label_set_text(d_val[0], s.hostname);
         lv_label_set_text(d_val[1], s.ip);
         lv_label_set_text(d_val[2], s.ssid);

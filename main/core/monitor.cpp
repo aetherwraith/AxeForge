@@ -217,11 +217,16 @@ static void monitor_task(void *)
             if (g_state.vr_temp >= lim.vr_ceil_c - FAN_BOOST_MARGIN_C) duty[1] = 100;
             // Bitair: the fan the purifier panel asked for is the least it gets
             float panel = purifier::fan_floor_pct();
+            static uint8_t s_last_duty[2] = {255, 255};
             for (int i = 0; i < 2; i++) {
                 if (kick[i] > 0) duty[i] = 100;
                 if (duty[i] < panel) duty[i] = panel;
-                fan::set_pct(i, duty[i]);
-                g_state.fan_duty[i] = (uint8_t) duty[i];
+                uint8_t d = (uint8_t) duty[i];
+                if (d != s_last_duty[i]) {
+                    fan::set_pct(i, duty[i]);
+                    s_last_duty[i] = d;
+                }
+                g_state.fan_duty[i] = d;
             }
             g_state.fan_pct = (uint8_t) duty[0];
 

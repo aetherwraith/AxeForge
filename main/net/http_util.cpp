@@ -29,11 +29,13 @@ char *get(const char *url, size_t max_len, int timeout_ms, bool quiet)
         esp_http_client_fetch_headers(c);
         int status = esp_http_client_get_status_code(c);
         if (status == 200) {
-            buf = (char *) heap_caps_malloc(max_len, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-            if (!buf) buf = (char *) malloc(max_len);
+            int64_t cl = esp_http_client_get_content_length(c);
+            size_t alloc_len = (cl > 0 && (size_t) cl + 1 < max_len) ? (size_t) cl + 1 : max_len;
+            buf = (char *) heap_caps_malloc(alloc_len, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+            if (!buf) buf = (char *) malloc(alloc_len);
             size_t total = 0;
             int n;
-            while (buf && total < max_len - 1 && (n = esp_http_client_read(c, buf + total, max_len - 1 - total)) > 0)
+            while (buf && total < alloc_len - 1 && (n = esp_http_client_read(c, buf + total, alloc_len - 1 - total)) > 0)
                 total += n;
             if (buf) buf[total] = 0;
         } else {

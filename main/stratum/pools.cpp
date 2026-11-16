@@ -9,6 +9,7 @@
 #include "cJSON.h"
 #include "esp_app_desc.h"
 #include "esp_crt_bundle.h"
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_transport.h"
@@ -128,8 +129,19 @@ static char *dup_str(const char *s)
 {
     size_t n = strlen(s) + 1;
     char *d = (char *) malloc(n);
-    memcpy(d, s, n);
+    if (d) memcpy(d, s, n);
     return d;
+}
+
+static void json_escape(const char *in, char *out, size_t cap)
+{
+    if (cap == 0) return;
+    size_t o = 0;
+    for (; *in && o + 2 < cap; in++) {
+        if (*in == '"' || *in == '\\') out[o++] = '\\';
+        out[o++] = *in;
+    }
+    out[o] = 0;
 }
 
 static void swap_words(const uint8_t *in, uint8_t *out)
@@ -425,19 +437,23 @@ static void run_v1(Pool &p, const PoolCfg &cfg)
              "{\"id\":%d,\"method\":\"mining.subscribe\",\"params\":[\"AxeForge/%s\"]}\n",
              ID_CONFIGURE, ID_SUBSCRIBE, app->version);
     send_line(p, line);
+    char u_esc[192], p_esc[128];
+    json_escape(cfg.user, u_esc, sizeof(u_esc));
+    json_escape(cfg.pass, p_esc, sizeof(p_esc));
     snprintf(line, sizeof(line),
              "{\"id\":%d,\"method\":\"mining.authorize\",\"params\":[\"%s\",\"%s\"]}\n"
              "{\"id\":%d,\"method\":\"mining.suggest_difficulty\",\"params\":[%d]}\n",
-             ID_AUTHORIZE, cfg.user, cfg.pass, ID_SUGGEST, SUGGEST_DIFF);
+             ID_AUTHORIZE, u_esc, p_esc, ID_SUGGEST, SUGGEST_DIFF);
     send_line(p, line);
     p.chip_ok = 0;
     g_state.pools[p.idx].chip_workers = 0;
     if (settings::get().chip_workers && AF_NUM_ASICS > 1) {
         for (int c = 0; c < AF_NUM_ASICS; c++) {
-            char worker[112];
+            char worker[112], w_esc[192];
             chip_worker(cfg.user, c, worker, sizeof(worker));
+            json_escape(worker, w_esc, sizeof(w_esc));
             snprintf(line, sizeof(line), "{\"id\":%d,\"method\":\"mining.authorize\",\"params\":[\"%s\",\"%s\"]}\n",
-                     ID_CHIP_AUTH_BASE + c, worker, cfg.pass);
+                     ID_CHIP_AUTH_BASE + c, w_esc, p_esc);
             send_line(p, line);
         }
     }
@@ -447,8 +463,11 @@ static void run_v1(Pool &p, const PoolCfg &cfg)
     p.unanswered_s = 0;
     set_status(p, cfg.proto == PoolProto::V1Tls ? "Connected (TLS)" : "Connected");
 
-    char *buf = (char *) malloc(V1_RX_BUF);
+    char *buf = (char *) heap_caps_malloc(V1_RX_BUF, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!buf) buf = (char *) malloc(V1_RX_BUF);
+    if (!buf) return;
     int fill = 0;
+    bool discard_line = false;
     int64_t last_rx = esp_timer_get_time();
     p.bad_subscribe = false;
     while (!p.restart && !p.bad_subscribe) {
@@ -477,12 +496,19 @@ static void run_v1(Pool &p, const PoolCfg &cfg)
         char *start = buf, *nl;
         while ((nl = strchr(start, '\n')) != NULL) {
             *nl = 0;
-            if (nl > start) v1_message(p, start);
+            if (discard_line) {
+                discard_line = false;
+            } else if (nl > start) {
+                v1_message(p, start);
+            }
             start = nl + 1;
         }
         fill = strlen(start);
         memmove(buf, start, fill + 1);
-        if (fill >= V1_RX_BUF - 1) fill = 0;
+        if (fill >= V1_RX_BUF - 1) {
+            fill = 0;
+            discard_line = true;
+        }
     }
     free(buf);
 }
@@ -515,6 +541,11 @@ static void v2_publish_ext(Pool &p, sv2_ext_job_t *ej)
     size_t l1 = ej->coinbase_prefix_len + ej->extranonce_prefix_len;
     char *h1 = (char *) malloc(l1 * 2 + 1);
     char *h2 = (char *) malloc(ej->coinbase_suffix_len * 2 + 1);
+    if (!h1 || !h2) {
+        free(h1);
+        free(h2);
+        return;
+    }
     work::bin2hex(ej->coinbase_prefix, ej->coinbase_prefix_len, h1);
     work::bin2hex(ej->extranonce_prefix, ej->extranonce_prefix_len, h1 + ej->coinbase_prefix_len * 2);
     work::bin2hex(ej->coinbase_suffix, ej->coinbase_suffix_len, h2);
@@ -671,7 +702,9 @@ static void run_v2(Pool &p, const PoolCfg &cfg)
         return;
     }
 
-    uint8_t *buf = (uint8_t *) malloc(SV2_RX_BUF);
+    uint8_t *buf = (uint8_t *) heap_caps_malloc(SV2_RX_BUF, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!buf) buf = (uint8_t *) malloc(SV2_RX_BUF);
+    if (!buf) return;
     uint8_t hdr[6];
     int len = 0;
     sv2_frame_header_t fh;
@@ -922,15 +955,16 @@ void submit(int i, const Work &w, uint32_t nonce, uint32_t version, int chip)
         if (n > 0) send_frame(p, frame, n);
         return;
     }
-    char line[340], worker[112];
+    char line[384], worker[112], u_esc[192];
     const char *user = settings::get().pools[i].user;
     if (chip >= 0 && chip < AF_NUM_ASICS && (p.chip_ok & (1u << chip))) {
         chip_worker(user, chip, worker, sizeof(worker));
         user = worker;
     }
+    json_escape(user, u_esc, sizeof(u_esc));
     snprintf(line, sizeof(line),
              "{\"id\":%lu,\"method\":\"mining.submit\",\"params\":[\"%s\",\"%s\",\"%s\",\"%08lx\",\"%08lx\",\"%08lx\"]}\n",
-             (unsigned long) p.submit_id++, user, w.job_id, w.extranonce2,
+             (unsigned long) p.submit_id++, u_esc, w.job_id, w.extranonce2,
              (unsigned long) w.ntime, (unsigned long) nonce, (unsigned long) (version & w.version_mask));
     send_line(p, line);
 }

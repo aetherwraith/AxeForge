@@ -9,5 +9,6 @@ void on_long_press(int index);
 void request_page(int delta);
 void request_kind(char kind);
 void reload_pages();
+int current_page();
 char current_kind();
 }

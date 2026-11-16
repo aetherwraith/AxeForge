@@ -64,7 +64,11 @@ static uint32_t hotp(const uint8_t *key, uint64_t counter)
 // Checks `code` against the steps around now. Returns the matching step, or 0.
 static const char *check(const uint8_t *key, const char *code, uint64_t *step_out)
 {
-    if (s_locked_until && g_state.uptime_s < s_locked_until) return "Too many wrong codes. Wait a minute.";
+    portENTER_CRITICAL(&s_mux);
+    uint32_t locked = s_locked_until;
+    uint64_t last_step = s_last_step;
+    portEXIT_CRITICAL(&s_mux);
+    if (locked && g_state.uptime_s < locked) return "Too many wrong codes. Wait a minute.";
     if (!g_state.time_synced) return "The miner's clock isn't set yet (no internet time). Try again shortly.";
     if (strlen(code) != 6) return "Enter the 6-digit code.";
     uint32_t want = 0;
@@ -75,18 +79,24 @@ static const char *check(const uint8_t *key, const char *code, uint64_t *step_ou
     uint64_t now = (uint64_t) time(NULL) / 30;
     for (int d = -1; d <= 1; d++) {  // one step of clock drift either way
         uint64_t step = now + d;
-        if (step <= s_last_step) continue;
+        if (step <= last_step) continue;
         if (hotp(key, step) == want) {
+            portENTER_CRITICAL(&s_mux);
             s_fails = 0;
+            portEXIT_CRITICAL(&s_mux);
             *step_out = step;
             return nullptr;
         }
     }
+    bool locked_now = false;
+    portENTER_CRITICAL(&s_mux);
     if (++s_fails >= MAX_FAILS) {
         s_fails = 0;
         s_locked_until = g_state.uptime_s + 60;
-        ESP_LOGW(TAG, "%d wrong codes, locked for a minute", MAX_FAILS);
+        locked_now = true;
     }
+    portEXIT_CRITICAL(&s_mux);
+    if (locked_now) ESP_LOGW(TAG, "%d wrong codes, locked for a minute", MAX_FAILS);
     return "Wrong code.";
 }
 

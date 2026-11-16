@@ -249,19 +249,28 @@ float market_ct_kwh()
 cJSON *json()
 {
     const Settings &cfg = settings::get();
+    portENTER_CRITICAL(&s_mux);
+    float now = s_now;
+    bool have = s_have;
+    uint32_t fetched_s = s_fetched_s;
+    uint32_t step_s = s_step;
+    char err[sizeof(s_err)];
+    memcpy(err, s_err, sizeof(err));
+    portEXIT_CRITICAL(&s_mux);
+
     cJSON *r = cJSON_CreateObject();
     cJSON_AddBoolToObject(r, "on", cfg.price_on);
     cJSON_AddNumberToObject(r, "src", cfg.price_src);
-    if (!isnan(s_now)) cJSON_AddNumberToObject(r, "now", round((double) s_now * 1000) / 1000);
+    if (!isnan(now)) cJSON_AddNumberToObject(r, "now", round((double) now * 1000) / 1000);
     cJSON_AddNumberToObject(r, "max", cfg.price_max);
     cJSON_AddStringToObject(r, "unit", cfg.price_src == SRC_ENERGY_CHARTS ? "ct/kWh" : "");
     cJSON_AddBoolToObject(r, "pausing", s_pause);
-    cJSON_AddNumberToObject(r, "age", s_have ? (double) (g_state.uptime_s - s_fetched_s) : -1.0);
-    cJSON_AddStringToObject(r, "error", s_err);
+    cJSON_AddNumberToObject(r, "age", have ? (double) (g_state.uptime_s - fetched_s) : -1.0);
+    cJSON_AddStringToObject(r, "error", err);
     if (cfg.price_src == SRC_ENERGY_CHARTS && cfg.price_on) {
         int i;
         slot_now(&i);
-        cJSON_AddNumberToObject(r, "step", s_step);
+        cJSON_AddNumberToObject(r, "step", step_s);
         cJSON *a = cJSON_AddArrayToObject(r, "slots");
         if (i >= 0) {
             float slots[96];
