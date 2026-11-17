@@ -9,6 +9,7 @@
 #include <string.h>
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lvgl.h"
@@ -292,22 +293,63 @@ static void oled_task(void *)
 
     int held_ms = 0, since_draw = 1000, since_rotate = 0;
     bool long_done = false;
+    int64_t last_input_ms = esp_timer_get_time() / 1000;
+    uint32_t blocks_seen = g_state.blocks_found;
+    uint8_t last_scroff = settings::get().screen_off_min;
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(50));
         since_draw += 50;
         identify_tick();
+        int64_t now_ms = esp_timer_get_time() / 1000;
         bool pressed = gpio_get_level(PIN_BOOT) == 0;
         if (pressed) {
+            last_input_ms = now_ms;
             held_ms += 50;
             if (held_ms >= LONG_PRESS_MS && !long_done) {
                 long_done = true;
                 s_on = !s_on;
                 panel_power(s_on);
+                if (s_on) since_draw = 1000;
             }
         } else if (held_ms) {
-            if (!long_done) s_page_delta = s_page_delta + 1;
+            if (!long_done) {
+                if (!s_on) {
+                    s_on = true;
+                    panel_power(true);
+                    since_draw = 1000;
+                } else {
+                    s_page_delta = s_page_delta + 1;
+                }
+            }
             held_ms = 0;
             long_done = false;
+        }
+        bool alarm = g_state.status == SysStatus::Fault || g_state.status == SysStatus::Overheat ||
+                     g_state.blocks_found != blocks_seen;
+        if (alarm) {
+            last_input_ms = now_ms;
+            blocks_seen = g_state.blocks_found;
+            if (!s_on) {
+                s_on = true;
+                panel_power(true);
+                since_draw = 1000;
+            }
+        } else {
+            uint8_t min = settings::get().screen_off_min;
+            if (min != last_scroff) {
+                last_scroff = min;
+                last_input_ms = now_ms;
+                if (min == 0 && !s_on) {
+                    s_on = true;
+                    panel_power(true);
+                    since_draw = 1000;
+                }
+            }
+            if (s_on && min && now_ms - last_input_ms > (int64_t) min * 60000) {
+                s_on = false;
+                panel_power(false);
+                ESP_LOGI(TAG, "screen off after %u min idle", min);
+            }
         }
         int rot = settings::get().page_rotate_s;
         if (rot && (since_rotate += 50) >= rot * 1000) {
