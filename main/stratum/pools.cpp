@@ -243,6 +243,7 @@ static void on_share_result(Pool &p, bool ok, const char *err)
     if (ok) {
         ps.accepted++;
         g_state.shares_accepted++;
+        ESP_LOGI(TAG, "[%d] share accepted", p.idx);
         ps.last_share_s = g_state.uptime_s;
         ps.accepted_work += p.diff;
         int64_t now = esp_timer_get_time();
