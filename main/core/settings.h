@@ -18,6 +18,7 @@ struct PoolCfg {
     PoolProto proto = PoolProto::V1;
     uint8_t weight = 100;     // split mode: share of work in percent
     char sv2_key[64] = "";    // optional SV2 authority pubkey (base58)
+    uint32_t suggest_diff = 0; // Stratum V1 mining.suggest_difficulty (0 = default 1024)
 };
 
 // Persistent user settings (NVS namespace "axeforge").

@@ -535,6 +535,7 @@ paths:
                         proto: {type: integer, description: '0 Stratum V1, 1 V1 + TLS, 2 Stratum V2'}
                         weight: {type: integer, description: percent of the work in split mode}
                         sv2key: {type: string}
+                        sdiff: {type: integer, description: 'suggested minimum difficulty (0 = default 1024)'}
     post:
       summary: Save pools and reconnect (no reboot)
       requestBody: {content: {application/json: {schema: {type: object}}}}

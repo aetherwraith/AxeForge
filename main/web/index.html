@@ -910,7 +910,8 @@ function renderPools(){$('pooleds').innerHTML=P.pools.map((p,i)=>`<div class="po
   <div><label>Port</label><input type="number" value="${p.port}" oninput="P.pools[${i}].port=+this.value"></div>
   <div><label>Protocol</label><select onchange="P.pools[${i}].proto=+this.value;$('k${i}').style.display=this.value==2?'':'none'">${PROTO.map((n,j)=>`<option value="${j}" ${p.proto==j?'selected':''}>${n}</option>`).join('')}</select></div></div>
  <div class="row"><div style="grid-column:span 2"><label>Worker (BTC address.name)</label><input value="${esc(p.user)}" oninput="P.pools[${i}].user=this.value" autocomplete="off"></div>
-  <div><label title="Left empty, the saved password is kept.">Password</label><input value="${esc(p.pass)}" oninput="P.pools[${i}].pass=this.value"></div></div>
+  <div><label title="Left empty, the saved password is kept.">Password</label><input value="${esc(p.pass)}" oninput="P.pools[${i}].pass=this.value"></div>
+  <div><label title="Suggested minimum share difficulty (0 = default 1024). Higher values slow down share rate.">Min diff</label><input type="number" min="0" value="${p.sdiff||0}" oninput="P.pools[${i}].sdiff=+this.value||0" placeholder="1024"></div></div>
  <div class="wrow"><label>Share of work <span class="rv" id="wv${i}">${p.weight}%</span></label><input type="range" min="0" max="100" step="5" value="${p.weight}" oninput="P.pools[${i}].weight=+this.value;$('wv${i}').textContent=this.value+'%'"></div>
  <div id="k${i}" style="display:${p.proto==2?'':'none'}"><label>SV2 authority public key (optional, base58)</label><input value="${esc(p.sv2key)}" oninput="P.pools[${i}].sv2key=this.value" placeholder="9bQHWXsQ2J9TRFTaxRh3KjoxdyLRfWVEy25YHtKF8y8gotLoCZZ">
   <p class="note">With a key the pool's identity is verified (Noise NX + Schnorr). Without it the link is still encrypted but unauthenticated.</p></div>

@@ -8,9 +8,6 @@ Ideas and enhancements beyond the current feature set:
 8. **Swarm Bulk OTA & Settings Sync**
    - Push a firmware `.bin` or sync pool/theme/display settings across all AxeForge miners on the Swarm tab in one click.
 
-9. **Configurable Pool-Side Minimum Difficulty (`SUGGEST_DIFF`)**
-   - Expose `mining.suggest_difficulty` per pool so users can tune share frequency directly (e.g., higher difficulty to quiet BitHalo LED pulses or lower difficulty for smoother short-window hashrate).
-
 10. **Latency & Stale-Share Aware Failover**
     - Track pool submit latency (`ping_ms`) and consecutive rejected/stale shares to temporarily demote degraded pools in Failover mode.
 

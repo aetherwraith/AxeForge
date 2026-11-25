@@ -90,6 +90,7 @@ char *pools_to_json()
         cJSON_AddNumberToObject(o, "proto", (int) p.proto);
         cJSON_AddNumberToObject(o, "weight", p.weight);
         cJSON_AddStringToObject(o, "sv2key", p.sv2_key);
+        cJSON_AddNumberToObject(o, "sdiff", p.suggest_diff);
         cJSON_AddItemToArray(a, o);
     }
     char *out = cJSON_PrintUnformatted(a);
@@ -124,6 +125,8 @@ void pools_from_json(const char *json)
         if (cJSON_IsNumber(v = cJSON_GetObjectItem(o, "weight")))
             p.weight = (uint8_t) (v->valueint < 0 ? 0 : v->valueint > 100 ? 100 : v->valueint);
         copy_json_str(o, "sv2key", p.sv2_key, sizeof(p.sv2_key));
+        if (cJSON_IsNumber(v = cJSON_GetObjectItem(o, "sdiff")))
+            p.suggest_diff = v->valueint < 0 ? 0 : (uint32_t) v->valueint;
     }
     cJSON_Delete(a);
 }

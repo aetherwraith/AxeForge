@@ -448,10 +448,11 @@ static void run_v1(Pool &p, const PoolCfg &cfg)
     char u_esc[192], p_esc[128];
     json_escape(cfg.user, u_esc, sizeof(u_esc));
     json_escape(cfg.pass, p_esc, sizeof(p_esc));
+    uint32_t sdiff = cfg.suggest_diff ? cfg.suggest_diff : SUGGEST_DIFF;
     snprintf(line, sizeof(line),
              "{\"id\":%d,\"method\":\"mining.authorize\",\"params\":[\"%s\",\"%s\"]}\n"
-             "{\"id\":%d,\"method\":\"mining.suggest_difficulty\",\"params\":[%d]}\n",
-             ID_AUTHORIZE, u_esc, p_esc, ID_SUGGEST, SUGGEST_DIFF);
+             "{\"id\":%d,\"method\":\"mining.suggest_difficulty\",\"params\":[%lu]}\n",
+             ID_AUTHORIZE, u_esc, p_esc, ID_SUGGEST, (unsigned long) sdiff);
     send_line(p, line);
     p.chip_ok = 0;
     g_state.pools[p.idx].chip_workers = 0;
@@ -862,7 +863,7 @@ static void pool_task(void *arg)
         }
         set_status(p, "Connecting...");
         p.proto = cfg.proto;
-        p.diff = SUGGEST_DIFF;
+        p.diff = cfg.suggest_diff ? cfg.suggest_diff : SUGGEST_DIFF;
         p.version_mask = DEFAULT_VERSION_MASK;
         if (transport_connect(p, cfg)) {
             backoff_s = 2;
