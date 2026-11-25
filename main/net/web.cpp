@@ -246,6 +246,11 @@ static esp_err_t status_get(httpd_req_t *req)
     }
     cJSON_AddNumberToObject(r, "uptime", s.uptime_s);
     cJSON_AddStringToObject(r, "resetReason", s.reset_reason);
+    cJSON *rc = cJSON_AddObjectToObject(r, "resetCounts");
+    cJSON_AddNumberToObject(rc, "poweron", s.reset_counts.poweron);
+    cJSON_AddNumberToObject(rc, "brownout", s.reset_counts.brownout);
+    cJSON_AddNumberToObject(rc, "wdt", s.reset_counts.wdt);
+    cJSON_AddNumberToObject(rc, "panic", s.reset_counts.panic);
     cJSON_AddStringToObject(r, "restartedBy", web::previous_restart());
     cJSON_AddStringToObject(r, "lastEmergency", monitor::last_emergency());
     cJSON_AddNumberToObject(r, "emergencies", monitor::emergency_count());

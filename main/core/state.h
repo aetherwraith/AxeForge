@@ -228,6 +228,9 @@ struct MinerState {
 
     uint32_t uptime_s = 0;
     char reset_reason[16] = "";
+    struct ResetCounts {
+        uint16_t poweron = 0, brownout = 0, wdt = 0, panic = 0;
+    } reset_counts;
     TunerState tuner;
     WeatherState weather;
     bool time_synced = false;

@@ -221,6 +221,13 @@ paths:
                   fanCount: {type: integer}
                   uptime: {type: integer, description: seconds since boot}
                   resetReason: {type: string}
+                  resetCounts:
+                    type: object
+                    properties:
+                      poweron: {type: integer}
+                      brownout: {type: integer}
+                      wdt: {type: integer}
+                      panic: {type: integer}
                   restartedBy: {type: string, description: who asked for the last restart, if it was asked for}
                   lastEmergency: {type: string}
                   emergencies: {type: integer}

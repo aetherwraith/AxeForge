@@ -5,9 +5,6 @@ Ideas and enhancements beyond the current feature set:
 5. **Day/Night & Time-of-Day Scheduling**
    - Local time-of-day profiles (e.g., quiet/low-power mode overnight with capped fan or power limit, full performance during the day) alongside existing electricity-price cutoffs.
 
-6. **Hardware Watchdog & Brownout Telemetry Counters**
-   - Persist `esp_reset_reason()` counts (brownout, task WDT, panic, power-on) in NVS and display them on *System → Device* to make diagnosing flaky 5 V cables, barrel jacks, or PSUs easier.
-
 7. **mDNS-Powered Swarm Discovery (`_http._tcp`)**
    - Query `_http._tcp` via `mdns_query_ptr()` in `swarm.cpp` to discover AxeForge, AxeOS, and NerdQAxe miners on the LAN near-instantly without brute-force `/24` socket scans.
 

@@ -141,6 +141,21 @@ extern "C" void app_main(void)
     }
 #endif
     settings::load();
+    {
+        nvs_handle_t h;
+        if (nvs_open("axeforge", NVS_READWRITE, &h) == ESP_OK) {
+            size_t len = sizeof(g_state.reset_counts);
+            if (nvs_get_blob(h, "rstcnt", &g_state.reset_counts, &len) != ESP_OK || len != sizeof(g_state.reset_counts))
+                g_state.reset_counts = {};
+            if (rr == ESP_RST_POWERON) g_state.reset_counts.poweron++;
+            else if (rr == ESP_RST_BROWNOUT) g_state.reset_counts.brownout++;
+            else if (rr == ESP_RST_INT_WDT || rr == ESP_RST_TASK_WDT || rr == ESP_RST_WDT) g_state.reset_counts.wdt++;
+            else if (rr == ESP_RST_PANIC) g_state.reset_counts.panic++;
+            nvs_set_blob(h, "rstcnt", &g_state.reset_counts, sizeof(g_state.reset_counts));
+            nvs_commit(h);
+            nvs_close(h);
+        }
+    }
     Settings &cfg = settings::get();
     ota_guard::boot(rr);  // before the stock fallback: a bad update goes back to the last AxeForge
     stats::load();
