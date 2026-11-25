@@ -527,6 +527,7 @@ hashrate as one chip per pool — or uses them as failover.</div>
 <label style="margin-top:0">Discord webhook URL</label><input id="ndiscord" placeholder="https://discord.com/api/webhooks/..." autocomplete="off">
 <div class="row"><div><label>Telegram bot token</label><input id="ntgtoken" placeholder="123456789:AA..." autocomplete="off"></div>
 <div><label>Telegram chat id</label><input id="ntgchat" placeholder="e.g. 123456789"></div></div>
+<label>Per-chip error alert (%, 0 = off)</label><input id="ncerr" type="number" min="0" max="50" step="1" style="max-width:120px">
 <div class="checks" id="nevents"></div>
 <p class="note">Saved tokens stay hidden; leave a field empty to keep it. Telegram: make a bot with @BotFather, send it a message, then use your chat id.</p>
 <div class="btns"><button class="btn" onclick="saveNotify()">Save</button><button class="btn alt" onclick="act('/api/notify')">Send test</button><button class="btn alt" onclick="clearNotify()">Remove all</button></div></div>
@@ -1126,10 +1127,10 @@ async function pollSelftest(){clearTimeout(stTimer);let r;try{r=await (await fet
 const NEV=[[1,'Block found'],[2,'New best share'],[4,'Faults and power cuts'],[8,'No pool for 5 minutes'],[16,'Miner started'],[32,'Time to clean the heatsink']];
 function notifyForm(){$('nevents').innerHTML=NEV.map(([b,n])=>`<label><input type="checkbox" data-b="${b}" ${cfg.notify&b?'checked':''}>${n}</label>`).join('');
  $('ndiscord').value='';$('ndiscord').placeholder=cfg.discordSet?'saved (hidden), paste a new one to replace':'https://discord.com/api/webhooks/...';
- $('ntgtoken').value='';$('ntgtoken').placeholder=cfg.tgSet?'saved (hidden)':'123456789:AA...';$('ntgchat').value=cfg.tgchat||''}
+ $('ntgtoken').value='';$('ntgtoken').placeholder=cfg.tgSet?'saved (hidden)':'123456789:AA...';$('ntgchat').value=cfg.tgchat||'';$('ncerr').value=cfg.cerrWarn??5}
 async function saveNotify(){const box=document.querySelectorAll('#nevents input');let n=0;box.forEach(e=>{if(e.checked)n|=+e.dataset.b});
  // no switches drawn (the settings didn't load): leave the saved events alone (#91)
- const body={discord:$('ndiscord').value.trim(),tgtoken:$('ntgtoken').value.trim(),tgchat:$('ntgchat').value.trim()};if(box.length)body.notify=n;
+ const body={discord:$('ndiscord').value.trim(),tgtoken:$('ntgtoken').value.trim(),tgchat:$('ntgchat').value.trim(),cerrWarn:+$('ncerr').value||0};if(box.length)body.notify=n;
  if(box.length&&!n&&!confirm('Every event is switched off: only test messages will be sent. Save anyway?'))return;
  await act('/api/settings',JSON.stringify(body));loadCfg()}
 async function clearNotify(){if(!confirm('Remove the Discord webhook and the Telegram bot?'))return;await act('/api/settings',JSON.stringify({notifyClear:true}));loadCfg()}

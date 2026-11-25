@@ -105,6 +105,41 @@ static void task(void *)
             pool_down_since = 0;
             pool_down_sent = false;
         }
+        static uint32_t s_chip_warn_s[AF_NUM_ASICS] = {};
+        static uint8_t s_chip_bad_cnt[AF_NUM_ASICS] = {};
+        static uint32_t s_last_chip_chk = 0;
+        if (g_state.status == SysStatus::Mining && g_state.uptime_s > 120 && g_state.uptime_s - s_last_chip_chk >= 15) {
+            s_last_chip_chk = g_state.uptime_s;
+            const Settings &cfg = settings::get();
+            uint8_t nchips = g_state.chips_detected;
+            if (nchips > AF_NUM_ASICS) nchips = AF_NUM_ASICS;
+            for (uint8_t i = 0; i < nchips; i++) {
+                float tot = g_state.chip_ghs[i] + g_state.chip_err_ghs[i];
+                float ep = tot > 0 ? 100.0f * g_state.chip_err_ghs[i] / tot : 0;
+                bool high_err = cfg.chip_err_warn_pct > 0 && ep > cfg.chip_err_warn_pct;
+                bool lag_hr = false;
+                float sib_avg = 0;
+                if (nchips > 1) {
+                    float sum = 0;
+                    for (uint8_t j = 0; j < nchips; j++) if (j != i) sum += g_state.chip_ghs[j];
+                    sib_avg = sum / (nchips - 1);
+                    if (sib_avg > 10.0f && g_state.chip_ghs[i] < sib_avg * 0.85f) lag_hr = true;
+                }
+                if (high_err || lag_hr) {
+                    if (s_chip_bad_cnt[i] < 255) s_chip_bad_cnt[i]++;
+                    if (s_chip_bad_cnt[i] >= 4 && (!s_chip_warn_s[i] || g_state.uptime_s - s_chip_warn_s[i] >= 3600)) {
+                        s_chip_warn_s[i] = g_state.uptime_s;
+                        if (high_err)
+                            notify::post(NOTIFY_MAINTENANCE, "chip %u error rate %.1f%% (limit %u%%)", i + 1, ep, cfg.chip_err_warn_pct);
+                        else
+                            notify::post(NOTIFY_MAINTENANCE, "chip %u hashrate %.0f GH/s (>15%% below siblings' %.0f GH/s)",
+                                         i + 1, g_state.chip_ghs[i], sib_avg);
+                    }
+                } else {
+                    s_chip_bad_cnt[i] = 0;
+                }
+            }
+        }
     }
 }
 
