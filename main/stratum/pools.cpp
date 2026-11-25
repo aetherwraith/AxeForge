@@ -503,7 +503,7 @@ static void run_v1(Pool &p, const PoolCfg &cfg)
     while (!p.restart && !p.bad_subscribe) {
         if (watchdog_reconnect(p)) break;
         // poll without the lock so submits are never blocked behind a read
-        int ready = esp_transport_poll_read(p.t, 200);
+        int ready = esp_transport_poll_read(p.t, 1000);
         if (ready < 0) break;
         if (ready == 0) {
             if (esp_timer_get_time() - last_rx > IDLE_RECONNECT_S * 1000000LL) {

@@ -74,14 +74,19 @@ void load()
 void tick()
 {
     static uint32_t since_save = 0;
+    static bool dirty = false;
     struct tm tm;
     if (weather::local_time(&tm)) {
         int32_t day = tm.tm_yday + 1000 * tm.tm_year;
         if (day != s_tot.day) {  // a new day (or the first one since the clock synced)
             s_tot.day = day;
             s_tot.kwh_today = s_tot.cost_today = 0;
+            dirty = true;
         }
-        if (!s_tot.since) s_tot.since = (uint32_t) time(NULL);
+        if (!s_tot.since) {
+            s_tot.since = (uint32_t) time(NULL);
+            dirty = true;
+        }
     }
     if (board::is_powered() && g_state.pin > 0) {
         double kwh = g_state.pin / 3600.0 / 1000.0;
@@ -93,10 +98,14 @@ void tick()
             s_tot.cost_total += kwh * p;
             s_tot.cost_today += kwh * p;
         }
+        dirty = true;
     }
     if (++since_save >= SAVE_EVERY_S) {
         since_save = 0;
-        save();
+        if (dirty) {
+            dirty = false;
+            save();
+        }
     }
 }
 

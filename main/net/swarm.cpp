@@ -413,8 +413,8 @@ static void run_sync(uint8_t mask)
         cJSON_AddNumberToObject(r, "rotate", s.page_rotate_s);
         cJSON_AddBoolToObject(r, "rot180", s.rotate_180);
         cJSON_AddStringToObject(r, "pages", s.pages);
-        cJSON_AddBoolToObject(r, "clock24", s.clock_24h);
-        cJSON_AddStringToObject(r, "cur", s.currency);
+        cJSON_AddBoolToObject(r, "h24", s.clock_24h);
+        cJSON_AddStringToObject(r, "currency", s.currency);
         disp_body = cJSON_PrintUnformatted(r);
         cJSON_Delete(r);
     }
@@ -451,8 +451,8 @@ static void run_bulk_release()
     for (int i = 0; i < n; i++) {
         snprintf(s_bulk_msg, sizeof(s_bulk_msg), "updating %d/%d (%s)...", i + 1, n, ips[i]);
         char url[64];
-        snprintf(url, sizeof(url), "http://%s/api/update/install", ips[i]);
-        if (http::post(url, "{}", 2, "application/json", 5000) == 200) ok++;
+        snprintf(url, sizeof(url), "http://%s/api/update", ips[i]);
+        if (http::post(url, "install", 7, "text/plain", 5000) == 200) ok++;
         else fail++;
     }
     snprintf(s_bulk_msg, sizeof(s_bulk_msg), "release update triggered: %d ok, %d failed", ok, fail);

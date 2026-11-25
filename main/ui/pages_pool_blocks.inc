@@ -128,16 +128,7 @@ struct Cube {
 static Cube s_next[2], s_mined[3];
 static lv_obj_t *s_now_h, *s_now_pool, *s_now_reward, *s_now_tag, *s_now_prev, *s_live_hash, *s_live_diff, *s_mp_err;
 
-static lv_color_t fee_color(float fee)
-{
-    if (theme::ember()) return lv_color_hex(theme::mempool_fee_rgb(fee));
-    if (fee < 2) return lv_color_hex(0x5b3fd9);
-    if (fee < 5) return lv_color_hex(0x3d7bff);
-    if (fee < 10) return lv_color_hex(0x1fbfa0);
-    if (fee < 20) return lv_color_hex(0x8fd12b);
-    if (fee < 50) return lv_color_hex(0xffb21c);
-    return lv_color_hex(0xff3b5c);
-}
+static lv_color_t fee_color(float fee) { return ui_fmt::fee_color(fee); }
 
 static Cube make_cube(lv_obj_t *p, int x, int y, int sz)
 {
@@ -280,29 +271,8 @@ static void refresh_blocks()
 
     // leading zeros glow; that's literally the proof of work
     if (s.last_hash[0]) {
-        // 4 rows of 16; LVGL recolor doesn't carry across lines, so reopen it
         char buf[200];
-        int o = 0, z = 0;
-        while (z < 64 && s.last_hash[z] == '0') z++;
-        bool colored = false;
-        for (int i = 0; i < 64; i++) {
-            if (i && i % 16 == 0) {
-                if (colored) buf[o++] = '#';
-                buf[o++] = '\n';
-                colored = false;
-            }
-            if (i < z && !colored) {
-                o += snprintf(buf + o, sizeof(buf) - o, "#00e5ff ");
-                colored = true;
-            }
-            if (i == z && colored) {
-                buf[o++] = '#';
-                colored = false;
-            }
-            buf[o++] = s.last_hash[i];
-        }
-        if (colored) buf[o++] = '#';
-        buf[o] = 0;
+        ui_fmt::hash_markup(s.last_hash, 16, buf, sizeof(buf));
         lv_label_set_text(s_live_hash, buf);
         char d[24];
         fmt_diff(s.last_hash_diff, d, sizeof(d));

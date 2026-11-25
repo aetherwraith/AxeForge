@@ -391,11 +391,13 @@ static void spawn_install()
     }
 }
 
+static TaskHandle_t s_task;
+
 static void task(void *)
 {
     int64_t next_s = FIRST_CHECK_S;
     while (true) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wifi::connected() ? 15000 : 2000));
         int64_t now_s = esp_timer_get_time() / 1000000;
         if (!wifi::connected()) continue;
         if (s_check_req || now_s >= next_s) {
@@ -420,16 +422,21 @@ static void task(void *)
 void start()
 {
     // the check only talks HTTPS: its stack can be in PSRAM, as the other web clients'
-    xTaskCreateWithCaps(task, "fwupdate", 6144, NULL, 2, NULL, MALLOC_CAP_SPIRAM);
+    xTaskCreateWithCaps(task, "fwupdate", 6144, NULL, 2, &s_task, MALLOC_CAP_SPIRAM);
 }
 
-void check_now() { s_check_req = true; }
+void check_now()
+{
+    s_check_req = true;
+    if (s_task) xTaskNotifyGive(s_task);
+}
 
 bool install_now()
 {
     if (s_installing || s_info.state == State::Checking) return false;
     if (!s_info.newer) return false;
     s_install_req = true;
+    if (s_task) xTaskNotifyGive(s_task);
     return true;
 }
 

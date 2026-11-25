@@ -1383,13 +1383,23 @@ static void session_of(httpd_req_t *req, char *out, size_t len)
 // The otpauth:// URI as an SVG QR code, for the authenticator app to scan.
 static char *qr_svg(const char *text)
 {
-    static uint8_t qr[qrcodegen_BUFFER_LEN_FOR_VERSION(10)], tmp[qrcodegen_BUFFER_LEN_FOR_VERSION(10)];
-    if (!qrcodegen_encodeText(text, tmp, qr, qrcodegen_Ecc_MEDIUM, 1, 10, qrcodegen_Mask_AUTO, true)) return nullptr;
+    const size_t blen = qrcodegen_BUFFER_LEN_FOR_VERSION(10);
+    uint8_t *qr = (uint8_t *) heap_caps_malloc(blen * 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!qr) qr = (uint8_t *) malloc(blen * 2);
+    if (!qr) return nullptr;
+    uint8_t *tmp = qr + blen;
+    if (!qrcodegen_encodeText(text, tmp, qr, qrcodegen_Ecc_MEDIUM, 1, 10, qrcodegen_Mask_AUTO, true)) {
+        free(qr);
+        return nullptr;
+    }
     int n = qrcodegen_getSize(qr);
     size_t cap = 256 + (size_t) n * n * 24;
     char *svg = (char *) heap_caps_malloc(cap, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (!svg) svg = (char *) malloc(cap);
-    if (!svg) return nullptr;
+    if (!svg) {
+        free(qr);
+        return nullptr;
+    }
     size_t o = snprintf(svg, cap,
                         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 %d %d' shape-rendering='crispEdges'>"
                         "<rect x='-4' y='-4' width='%d' height='%d' fill='#fff'/><path fill='#000' d='",
@@ -1398,6 +1408,7 @@ static char *qr_svg(const char *text)
         for (int x = 0; x < n; x++)
             if (qrcodegen_getModule(qr, x, y) && o + 24 < cap) o += snprintf(svg + o, cap - o, "M%d %dh1v1h-1z", x, y);
     snprintf(svg + o, cap - o, "'/></svg>");
+    free(qr);
     return svg;
 }
 

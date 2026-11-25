@@ -16,6 +16,7 @@
 
 #include "core/settings.h"
 #include "core/state.h"
+#include "net/http_util.h"
 #include "net/wifi.h"
 
 static const char *TAG = "notify";
@@ -28,21 +29,9 @@ static QueueHandle_t s_q;
 
 static bool send_json(const char *url, const char *body)
 {
-    esp_http_client_config_t cfg = {};
-    cfg.url = url;
-    cfg.method = HTTP_METHOD_POST;
-    cfg.crt_bundle_attach = esp_crt_bundle_attach;
-    cfg.timeout_ms = 10000;
-    esp_http_client_handle_t c = esp_http_client_init(&cfg);
-    if (!c) return false;
-    esp_http_client_set_header(c, "Content-Type", "application/json");
-    esp_http_client_set_post_field(c, body, strlen(body));
-    esp_err_t err = esp_http_client_perform(c);
-    int status = esp_http_client_get_status_code(c);
-    esp_http_client_cleanup(c);
-    if (err != ESP_OK || status < 200 || status >= 300) {
-        // the URL holds the webhook secret / bot token: never log it
-        ESP_LOGW(TAG, "send failed (%s, HTTP %d)", esp_err_to_name(err), status);
+    int status = http::post(url, body, strlen(body), "application/json", 10000, true);
+    if (status < 200 || status >= 300) {
+        ESP_LOGW(TAG, "send failed (HTTP %d)", status);
         return false;
     }
     return true;

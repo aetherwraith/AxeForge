@@ -341,7 +341,7 @@ html[data-scr=oled] .lcd{display:none!important}html:not([data-scr=oled]) .oled{
   <input type="file" id="swotabin" accept=".bin" style="max-width:260px">
   <button class="btn sm" onclick="swBulkOta()">Push .bin to peers</button>
  </div>
- <div class="prog" id="swotaprog" style="display:none;margin-top:10px"><div></div></div>
+ <div class="prog" id="swotaprog" style="display:none;margin-top:10px"><i></i></div>
  <p class="note">Applies to online AxeForge peers only (AxeOS / NerdQAxe stock miners are untouched). Pushing a .bin uploads it once to this miner, which forwards it to each online AxeForge peer.</p>
 </div>
 </section>
@@ -1060,7 +1060,7 @@ async function exportChart(fmt){const D=cRange=='hour'?(HOUR||await (await fetch
  const step=D.step||30,hrA=D.hashrate||[],tA=D.temp||[],pA=D.power||[],n=hrA.length;
  const body=fmt=='json'?JSON.stringify(D,null,1):'index,seconds_ago,hashrate_ghs,temp_c,power_w\n'+hrA.map((v,i)=>`${i},${(n-1-i)*step},${v},${tA[i]??''},${pA[i]??''}`).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([body],{type:fmt=='json'?'application/json':'text/csv'}));
- a.download=`axeforge-telemetry-${cRange=='hour'?'1h':'24h'}.${fmt}`;a.click()}
+ a.download=`axeforge-telemetry-${cRange=='hour'?'1h':'24h'}.${fmt}`;a.click();URL.revokeObjectURL(a.href)}
 const cFmt=x=>cMetric=='hashrate'?hr(x).join(' '):cMetric=='temp'?x.toFixed(1)+' °C':x.toFixed(1)+' W';
 const cAgo=s=>s<30?'now':s<3600?`${Math.round(s/60)} min ago`:`${Math.floor(s/3600)} h ${Math.round(s%3600/60)} min ago`;
 function drawChart(){const c=$('chart'),D=cRange=='hour'?HOUR:DAY,v=D&&D[cMetric]||[],step=D?D.step:30,W=c.clientWidth||600,H=c.clientHeight||150;
@@ -1159,7 +1159,7 @@ drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};drop.ondragle
 drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');upload(e.dataTransfer.files[0])};file.onchange=()=>upload(file.files[0]);
 function upload(f){if(!f)return;if(!confirm(`Install ${f.name} (${(f.size/1024|0)} kB)? The miner will reboot.`))return;
  const x=new XMLHttpRequest(),pb=$('prog');pb.style.display='block';x.upload.onprogress=e=>pb.firstChild.style.width=(100*e.loaded/e.total)+'%';
- x.onload=()=>toast(x.responseText);x.onerror=()=>toast('Upload failed');x.open('POST','/api/ota');x.setRequestHeader('X-AxeForge','1');if(SESS)x.setRequestHeader('X-AxeForge-Session',SESS);
+ x.onerror=()=>toast('Upload failed');x.open('POST','/api/ota');x.setRequestHeader('X-AxeForge','1');if(SESS)x.setRequestHeader('X-AxeForge-Session',SESS);
  x.onload=()=>{if(x.status==401){toast('Log in first, then upload again');askLogin()}else toast(x.responseText)};x.send(f)}
 
 loadCfg().then(()=>{tick();const h=location.hash.slice(1);if(titles[h])tab(h)});loadPools();loadLayout();chart();loadDay();

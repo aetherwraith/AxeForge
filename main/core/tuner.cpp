@@ -5,6 +5,7 @@
 #include <string.h>
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/idf_additions.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
 
@@ -258,7 +259,7 @@ static void lock_point(uint16_t freq, uint16_t mv, float ghs)
     Settings &cfg = settings::get();
     cfg.tuned_freq = freq;
     cfg.tuned_mv = mv;
-    settings::save();
+    settings::save_later();
     g_state.tuner.best_freq = freq;
     g_state.tuner.best_mv = mv;
     g_state.tuner.best_ghs = ghs;
@@ -399,7 +400,7 @@ static void lower_chip(int chip, const char *why, int min_off = 0)
     int next = off[chip] - CHIP_STEP;
     off[chip] = (int8_t) (next < min_off ? min_off : next);
     set_offsets(off);
-    settings::save();
+    settings::save_later();
     snprintf(g_state.tuner.note, sizeof(g_state.tuner.note), "%s: chip %d to %+d MHz", why, chip + 1, off[chip]);
     ESP_LOGW(TAG, "%s", g_state.tuner.note);
 }
@@ -504,13 +505,13 @@ static bool tune_chips(uint16_t f, float &ghs)
         if (r.verdict == Verdict::Stable && !failed && r.ghs > ghs) ghs = r.ghs;
         if (stop || failed) set_offsets(off);
         if (r.verdict == Verdict::Aborted) {
-            settings::save();
+            settings::save_later();
             return false;
         }
         if (stop) break;
     }
     set_offsets(off);
-    settings::save();
+    settings::save_later();
     char line[8 * AF_NUM_ASICS + 1] = "";
     for (int i = 0; i < chips; i++)
         snprintf(line + strlen(line), sizeof(line) - strlen(line), "%s%+d", i ? " " : "", off[i]);
@@ -561,7 +562,7 @@ static void tuner_task(void *)
             s_restart = false;
             cfg.tuned_freq = cfg.tuned_mv = 0;
             clear_offsets();
-            settings::save();
+            settings::save_later();
             g_state.tuner = TunerState();
             // A new search climbs; it never jumps above the board's stock point in
             // one step. A start point above it (typed in, or a stale form, #89) put
@@ -577,7 +578,7 @@ static void tuner_task(void *)
         if (!cfg.tuned_freq) {
             if (any_offset()) {  // a new search starts with every chip at the chain clock
                 clear_offsets();
-                settings::save();
+                settings::save_later();
             }
             g_state.tuner.phase = TunerPhase::WarmUp;
             note("Starting search from %.0f MHz", best_f);
@@ -666,7 +667,8 @@ static void tuner_task(void *)
 namespace tuner {
 void start()
 {
-    if (xTaskCreate(tuner_task, "tuner", 4096, NULL, 4, NULL) != pdPASS) ESP_LOGE(TAG, "could not start tuner task");
+    if (xTaskCreateWithCaps(tuner_task, "tuner", 4096, NULL, 4, NULL, MALLOC_CAP_SPIRAM) != pdPASS)
+        ESP_LOGE(TAG, "could not start tuner task");
 }
 void restart()
 {

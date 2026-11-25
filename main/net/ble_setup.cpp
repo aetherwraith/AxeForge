@@ -93,7 +93,7 @@ const char *name() { return s_name; }
 
 #else
 namespace ble_setup {
-void start() {}
+void start(const char *) {}
 bool active() { return false; }
 const char *name() { return ""; }
 }

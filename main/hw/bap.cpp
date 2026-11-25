@@ -233,7 +233,9 @@ static void task(void *)
     uint8_t buf[64];
     send("STA", "status", "ready");
     while (true) {
-        int n = uart_read_bytes(BAP_UART, buf, sizeof(buf), pdMS_TO_TICKS(100));
+        bool any_sub = false;
+        for (int p = 0; p < N_PARAMS && !any_sub; p++) if (s_subs[p].on) any_sub = true;
+        int n = uart_read_bytes(BAP_UART, buf, sizeof(buf), pdMS_TO_TICKS(any_sub ? 100 : 1000));
         for (int i = 0; i < n; i++) {
             char c = (char) buf[i];
             if (c == '$') len = 0;  // a new sentence always starts over

@@ -134,11 +134,13 @@ static void start_client()
     esp_mqtt_client_start(s_client);
 }
 
+static TaskHandle_t s_task;
+
 static void task(void *)
 {
     int64_t last_pub_s = 0;
     while (true) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wifi::connected() ? 15000 : 2000));
         if (s_reconfig) {
             s_reconfig = false;
             stop_client();
@@ -159,8 +161,12 @@ static void task(void *)
 
 namespace mqtt_ha {
 
-void start() { xTaskCreateWithCaps(task, "mqtt", 4096, NULL, 2, NULL, MALLOC_CAP_SPIRAM); }
-void reconfigure() { s_reconfig = true; }
+void start() { xTaskCreateWithCaps(task, "mqtt", 4096, NULL, 2, &s_task, MALLOC_CAP_SPIRAM); }
+void reconfigure()
+{
+    s_reconfig = true;
+    if (s_task) xTaskNotifyGive(s_task);
+}
 bool want_pause() { return s_paused; }
 
 } // namespace mqtt_ha

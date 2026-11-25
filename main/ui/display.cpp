@@ -448,8 +448,11 @@ static void display_task(void *)
         screen_idle_check();
         identify_tick();
         uint32_t wait = lv_timer_handler();
-        if (wait > 20) wait = 20;
-        if (wait < 5) wait = 5;
+        if (s_asleep) wait = 50;
+        else {
+            if (wait > 20) wait = 20;
+            if (wait < 5) wait = 5;
+        }
         vTaskDelay(pdMS_TO_TICKS(wait));
     }
 }

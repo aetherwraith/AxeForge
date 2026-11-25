@@ -46,12 +46,12 @@ inline lv_color_t fee_color(float f)
     return lv_color_hex(0xff3b5c);
 }
 
-inline void hash_markup(const char *h, int per_line, char *out, size_t n)
+inline void hash_markup(const char *h, int per_line, char *out, size_t n, int max_chars = 64)
 {
     int o = 0, z = 0;
     while (z < 64 && h[z] == '0') z++;
     bool col = false;
-    for (int i = 0; i < 64 && o < (int) n - 12; i++) {
+    for (int i = 0; i < max_chars && i < 64 && h[i] && o < (int) n - 12; i++) {
         if (i && i % per_line == 0) {
             if (col) out[o++] = '#';
             out[o++] = '\n';

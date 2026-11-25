@@ -44,7 +44,7 @@ static const char *TAG = "miner";
 #define FROZEN_S 180       // the hashrate unchanged to the last bit
 
 static SemaphoreHandle_t s_work_lock;
-static Work s_work[NUM_SLOTS];
+static EXT_RAM_BSS_ATTR Work s_work[NUM_SLOTS];
 static volatile bool s_paused = false;
 static volatile uint32_t s_last_result_s = 0;  // uptime of the last nonce frame from any chip
 static TaskHandle_t s_job_task;
@@ -158,10 +158,12 @@ static int pick_pool(PoolSlot *slots)
 
 static void job_task(void *)
 {
-    static PoolSlot slots[AF_MAX_POOLS];
+    static EXT_RAM_BSS_ATTR PoolSlot slots[AF_MAX_POOLS];
     uint32_t sent_window = 0;
     uint32_t sent_per_pool[AF_MAX_POOLS] = {};
     int last_pool = -1;
+    uint32_t last_asic_diff = 0;
+    uint32_t last_roll_mask = 0xffffffff;
 
     while (true) {
         if (s_paused || !board::is_powered()) {
@@ -217,8 +219,15 @@ static void job_task(void *)
         AsicJob cj;
         work::build(s.tmpl, s.info.en1, s.en2++, s.info.en2_len, s.info.version_mask, s.info.difficulty, w, cj);
         w.pool = p;
-        asic::set_difficulty_mask(asic_difficulty(min_diff));
-        asic::set_version_mask(roll_mask);
+        uint32_t ad = asic_difficulty(min_diff);
+        if (ad != last_asic_diff) {
+            asic::set_difficulty_mask(ad);
+            last_asic_diff = ad;
+        }
+        if (roll_mask != last_roll_mask) {
+            asic::set_version_mask(roll_mask);
+            last_roll_mask = roll_mask;
+        }
         uint8_t slot = asic::send_job(s_job_counter++, cj);
         xSemaphoreTake(s_work_lock, portMAX_DELAY);
         s_work[slot] = w;

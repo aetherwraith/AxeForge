@@ -54,8 +54,14 @@ struct Emc {
     {
         if (!s_mux_lock) s_mux_lock = xSemaphoreCreateMutex();
         xSemaphoreTake(s_mux_lock, portMAX_DELAY);
+        static uint8_t s_mux_last = 0xff;
         uint8_t ctl = 0x04 | MUX_CH[i];  // bit 2 enables, bits 0-1 pick the channel
-        ok = i2c_bus::write(AF_EMC_MUX_ADDR, &ctl, 1) == ESP_OK;
+        if (ctl == s_mux_last) {
+            ok = true;
+        } else {
+            ok = i2c_bus::write(AF_EMC_MUX_ADDR, &ctl, 1) == ESP_OK;
+            if (ok) s_mux_last = ctl;
+        }
     }
     ~Emc() { xSemaphoreGive(s_mux_lock); }
 };
@@ -106,14 +112,13 @@ void set_pct(int channel, float pct)
 uint16_t rpm(int channel)
 {
     if (channel < 0 || channel >= EMC_N) return 0;
-    uint8_t lsb = 0, msb = 0;
+    uint8_t buf[2] = {0, 0};
     {
         Emc e(channel);
         if (!e.ok) return 0;
-        if (i2c_bus::read(EMC2101_ADDR, EMC2101_TACH_LSB, &lsb, 1) != ESP_OK) return 0;
-        if (i2c_bus::read(EMC2101_ADDR, EMC2101_TACH_MSB, &msb, 1) != ESP_OK) return 0;
+        if (i2c_bus::read(EMC2101_ADDR, EMC2101_TACH_LSB, buf, 2) != ESP_OK) return 0;
     }
-    uint16_t raw = lsb | (msb << 8);
+    uint16_t raw = buf[0] | (buf[1] << 8);
     if (raw == 0 || raw == 0xffff) return 0;
     uint32_t r = 5400000u / raw;
     return r > 65535 ? 0 : (uint16_t) r;

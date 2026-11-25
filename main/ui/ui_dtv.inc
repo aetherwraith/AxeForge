@@ -372,15 +372,21 @@ static void b_refresh_dash()
     lv_label_set_text_fmt(b_plate[3], "%u%%", s.fan_pct);
     lv_label_set_text_fmt(b_tune, "#ff8000 %s#   %u MHz   %u.%02u V   %s", phase_name(s.tuner.phase), s.freq_mhz,
                           s.core_mv / 1000, (s.core_mv % 1000) / 10, s.tuner.note);
-    float vmax = 1;
-    for (int i = 0; i < AF_HISTORY_LEN; i++)
-        if (s.history[i] > vmax) vmax = s.history[i];
-    lv_chart_set_range(b_chart, LV_CHART_AXIS_PRIMARY_Y, 0, (lv_coord_t) (vmax * 1.1f));
-    for (int i = 0; i < AF_HISTORY_LEN; i++) {
-        float h = s.history[(s.history_head + i) % AF_HISTORY_LEN];
-        b_series->y_points[i] = h > 0 ? (lv_coord_t) h : LV_CHART_POINT_NONE;
+    static uint16_t s_last_head = 0xffff;
+    static lv_obj_t *s_last_chart = nullptr;
+    if (s.history_head != s_last_head || b_chart != s_last_chart) {
+        s_last_head = s.history_head;
+        s_last_chart = b_chart;
+        float vmax = 1;
+        for (int i = 0; i < AF_HISTORY_LEN; i++)
+            if (s.history[i] > vmax) vmax = s.history[i];
+        lv_chart_set_range(b_chart, LV_CHART_AXIS_PRIMARY_Y, 0, (lv_coord_t) (vmax * 1.1f));
+        for (int i = 0; i < AF_HISTORY_LEN; i++) {
+            float h = s.history[(s.history_head + i) % AF_HISTORY_LEN];
+            b_series->y_points[i] = h > 0 ? (lv_coord_t) h : LV_CHART_POINT_NONE;
+        }
+        lv_chart_refresh(b_chart);
     }
-    lv_chart_refresh(b_chart);
 }
 
 static void b_refresh_clock()

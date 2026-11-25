@@ -138,8 +138,6 @@ static void build_widget(lv_obj_t *page, Widget &w, const char *type, int gx, in
             else lv_label_set_text_fmt(l, "%d", i + 1);
             lv_obj_t *v = label(w.box, &lv_font_montserrat_12, C_TEXT, "");
             lv_obj_set_pos(v, w.wpx - 56, 24 + i * rowh + rowh / 2 - 7);
-            if (i < 4) w.parts[i] = b;
-            if (i == 0) w.aux = v;
             lv_obj_set_user_data(b, v);
         }
         return;
@@ -188,7 +186,7 @@ static void build_widget(lv_obj_t *page, Widget &w, const char *type, int gx, in
         for (int i = 0; i < n && i < 6; i++) {
             lv_obj_t *c = blob(w.box, 8 + i * (sz + 8), w.cap ? 22 : 6, sz, sz, C_PANEL, 5);
             lv_obj_set_style_bg_grad_dir(c, LV_GRAD_DIR_VER, 0);
-            lv_obj_t *l = label(c, sz > 50 ? &lv_font_montserrat_12 : &lv_font_montserrat_12, lv_color_hex(0xffffff), "");
+            lv_obj_t *l = label(c, &lv_font_montserrat_12, lv_color_hex(0xffffff), "");
             lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
             lv_obj_center(l);
             lv_obj_set_user_data(c, l);
@@ -278,6 +276,11 @@ static void refresh_widget(Widget &w)
         break;
     }
     case WType::Chart: {
+        static uint16_t s_last_head = 0xffff;
+        static lv_obj_t *s_last_chart = nullptr;
+        if (s.history_head == s_last_head && w.aux == s_last_chart) break;
+        s_last_head = s.history_head;
+        s_last_chart = w.aux;
         float vmax = 1;
         for (int i = 0; i < AF_HISTORY_LEN; i++)
             if (s.history[i] > vmax) vmax = s.history[i];
@@ -398,27 +401,9 @@ static void refresh_widget(Widget &w)
         if (lines < 1) lines = 1;
         int show = per * lines > 64 ? 64 : per * lines;
         char buf[200];
-        int o = 0, z = 0;
+        int z = 0;
         while (z < 64 && s.last_hash[z] == '0') z++;
-        bool colored = false;
-        for (int i = 0; i < show; i++) {
-            if (i && i % per == 0) {
-                if (colored) buf[o++] = '#';
-                buf[o++] = '\n';
-                colored = false;
-            }
-            if (i < z && !colored) {
-                o += snprintf(buf + o, sizeof(buf) - o, "#00e5ff ");
-                colored = true;
-            }
-            if (i == z && colored) {
-                buf[o++] = '#';
-                colored = false;
-            }
-            buf[o++] = s.last_hash[i];
-        }
-        if (colored) buf[o++] = '#';
-        buf[o] = 0;
+        ui_fmt::hash_markup(s.last_hash, per, buf, sizeof(buf), show);
         lv_label_set_text(w.val, buf);
         fmt_diff(s.last_hash_diff, d, sizeof(d));
         lv_label_set_text_fmt(w.sub, "%d zeros  diff %s", z, d);

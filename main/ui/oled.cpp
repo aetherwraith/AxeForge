@@ -116,17 +116,18 @@ static void flush()
 {
     static uint8_t s_prev_fb[sizeof(s_fb)];
     static bool s_have_prev = false;
-    if (s_have_prev && memcmp(s_prev_fb, s_fb, sizeof(s_fb)) == 0) return;
-    memcpy(s_prev_fb, s_fb, sizeof(s_fb));
-    s_have_prev = true;
-    static const uint8_t win[] = {0x21, 0, W - 1, 0x22, 0, H / 8 - 1};
-    cmd(win, sizeof(win));
     uint8_t buf[1 + W];
     buf[0] = 0x40;  // control byte: data
     for (int page = 0; page < H / 8; page++) {
-        memcpy(buf + 1, s_fb + page * W, W);
+        int off = page * W;
+        if (s_have_prev && memcmp(s_prev_fb + off, s_fb + off, W) == 0) continue;
+        memcpy(s_prev_fb + off, s_fb + off, W);
+        uint8_t win[] = {0x21, 0, W - 1, 0x22, (uint8_t) page, (uint8_t) page};
+        cmd(win, sizeof(win));
+        memcpy(buf + 1, s_fb + off, W);
         i2c_bus::write(OLED_ADDR, buf, sizeof(buf));
     }
+    s_have_prev = true;
 }
 
 // ------------------------------------------------------------------ drawing

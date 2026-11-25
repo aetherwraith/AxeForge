@@ -278,7 +278,7 @@ static void monitor_task(void *)
                 emergency(SysStatus::Fault, why);
                 continue;
             }
-            fan::check();  // re-applies the fan setup if the controller lost it
+            if (tick % 5 == 0) fan::check();  // re-applies the fan setup if the controller lost it
             // With one temperature sensor, a dead fan over the far chips would only
             // show up once they were already too hot.
             int stalled = -1;
@@ -372,9 +372,14 @@ static void monitor_task(void *)
             // except on a Bitair whose panel can't be read, which gets full air
             float d = g_state.chip_temp_max > 45 || g_state.vr_temp > 50 ? 40 : 0;
             if (purifier::mode() == purifier::Mode::Unknown && purifier::want_off()) d = purifier::fan_floor_pct();
+            static uint8_t s_pause_duty[2] = {255, 255};
             for (int i = 0; i < 2; i++) {
-                fan::set_pct(i, d);
-                g_state.fan_duty[i] = (uint8_t) d;
+                uint8_t ud = (uint8_t) d;
+                if (ud != s_pause_duty[i]) {
+                    fan::set_pct(i, d);
+                    s_pause_duty[i] = ud;
+                }
+                g_state.fan_duty[i] = ud;
             }
             g_state.fan_pct = (uint8_t) d;
             g_state.status = wifi::in_setup_mode() ? SysStatus::SetupAP : SysStatus::Paused;
@@ -405,8 +410,11 @@ static void monitor_task(void *)
                 }
             }
         } else if (g_state.status == SysStatus::Overheat && overheat_retries < MAX_OVERHEAT_RETRIES) {
-            fan::set_pct(0, 100);
-            fan::set_pct(1, 100);
+            if (g_state.fan_duty[0] != 100 || g_state.fan_duty[1] != 100) {
+                fan::set_pct(0, 100);
+                fan::set_pct(1, 100);
+                g_state.fan_duty[0] = g_state.fan_duty[1] = 100;
+            }
             // wait until well below the trip point, then restart lower
             if (sensors_ok && g_state.chip_temp_max < CONFIG_AF_CRIT_CHIP_TEMP - COOLDOWN_HYST_C &&
                 g_state.vr_temp < lim.vr_crit_c - COOLDOWN_HYST_C && ++recovery_wait >= RECOVERY_WAIT_S) {
