@@ -1208,10 +1208,10 @@ static esp_err_t swarm_get(httpd_req_t *req)
     return ESP_OK;
 }
 
-// {"add":"192.168.1.20"} | {"remove":"192.168.1.20"} | {"scan":true}
+// {"add":"192.168.1.20"} | {"remove":"192.168.1.20"} | {"scan":true} | {"sync":"pools"|"display"|"all"} | {"ota_release":true}
 static esp_err_t swarm_post(httpd_req_t *req)
 {
-    char *body = recv_body(req, 256);
+    char *body = recv_body(req, 512);
     cJSON *j = body ? json_parse(body) : nullptr;
     free(body);
     if (!j) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad request");
@@ -1224,9 +1224,49 @@ static esp_err_t swarm_post(httpd_req_t *req)
     else if (cJSON_IsTrue(cJSON_GetObjectItem(j, "scan"))) {
         swarm::request_scan();
         msg = "Scanning the network, this takes about 20 seconds.";
+    } else if (cJSON_IsString(v = cJSON_GetObjectItem(j, "sync"))) {
+        uint8_t mask = strcmp(v->valuestring, "pools") == 0 ? 1 :
+                       strcmp(v->valuestring, "display") == 0 ? 2 :
+                       strcmp(v->valuestring, "all") == 0 ? 3 : 0;
+        if (mask) {
+            swarm::request_sync(mask);
+            msg = "Syncing settings to online AxeForge peers...";
+        } else {
+            msg = "Invalid sync target.";
+        }
+    } else if (cJSON_IsTrue(cJSON_GetObjectItem(j, "ota_release"))) {
+        swarm::request_bulk_update();
+        msg = "Triggering GitHub release update on online AxeForge peers...";
     }
     cJSON_Delete(j);
     return httpd_resp_sendstr(req, msg);
+}
+
+static esp_err_t swarm_ota_post(httpd_req_t *req)
+{
+    if (req->content_len < 0x10000 || req->content_len > 0x400000)
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "file size looks wrong");
+    char *buf = (char *) heap_caps_malloc(req->content_len, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!buf) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "out of memory");
+    size_t got = 0;
+    while (got < (size_t) req->content_len) {
+        int n = httpd_req_recv(req, buf + got, (size_t) req->content_len - got);
+        if (n == HTTPD_SOCK_ERR_TIMEOUT) continue;
+        if (n <= 0) {
+            free(buf);
+            return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "upload interrupted");
+        }
+        got += (size_t) n;
+    }
+    if ((uint8_t) buf[0] != 0xE9) {
+        free(buf);
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "not an ESP32 firmware image");
+    }
+    if (!swarm::start_bulk_ota(buf, got)) {
+        free(buf);
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "swarm OTA already in progress");
+    }
+    return httpd_resp_sendstr(req, "Swarm OTA started for online AxeForge peers.");
 }
 
 // Captive portal: in setup mode every unknown page (the OS connectivity checks
@@ -1573,6 +1613,7 @@ void start()
         {"/api/layout", HTTP_POST, layout_post, NULL},
         {"/api/swarm", HTTP_GET, swarm_get, NULL},
         {"/api/swarm", HTTP_POST, swarm_post, NULL},
+        {"/api/swarm/ota", HTTP_POST, swarm_ota_post, NULL},
         {"/api/wifi/scan", HTTP_GET, wifi_scan_get, NULL},
         {"/api/scoreboard", HTTP_GET, scoreboard_get, NULL},
         {"/api/scoreboard", HTTP_POST, scoreboard_post, NULL},

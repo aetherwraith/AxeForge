@@ -328,6 +328,20 @@ html[data-scr=oled] .lcd{display:none!important}html:not([data-scr=oled]) .oled{
  <div class="btns" style="margin-top:14px"><input id="swip" placeholder="192.168.1.20" inputmode="decimal" style="max-width:190px">
   <button class="btn alt" onclick="swAdd()">Add miner</button><button class="btn" onclick="swScan()">Scan network</button></div>
  <p class="note">Works with AxeForge, AxeOS (Bitaxe) and NerdQAxe stock firmware. This miner polls the others itself, so their pages never have to be opened from here. Scanning checks every address in this miner's /24 network.</p></div>
+<div class="card mb"><h3>Bulk actions (AxeForge peers) <span class="tag" id="swbulk">idle</span></h3>
+ <div class="btns">
+  <button class="btn alt sm" onclick="swSync('pools')">Sync pools</button>
+  <button class="btn alt sm" onclick="swSync('display')">Sync display &amp; theme</button>
+  <button class="btn sm" onclick="swSync('all')">Sync all</button>
+  <button class="btn alt sm" onclick="swBulkRel()">Update peers from GitHub</button>
+ </div>
+ <div class="btns" style="margin-top:12px">
+  <input type="file" id="swotabin" accept=".bin" style="max-width:260px">
+  <button class="btn sm" onclick="swBulkOta()">Push .bin to peers</button>
+ </div>
+ <div class="prog" id="swotaprog" style="display:none;margin-top:10px"><div></div></div>
+ <p class="note">Applies to online AxeForge peers only (AxeOS / NerdQAxe stock miners are untouched). Pushing a .bin uploads it once to this miner, which forwards it to each online AxeForge peer.</p>
+</div>
 </section>
 
 <!-- ============================== POOLS -->
@@ -779,6 +793,7 @@ async function loadSwarm(){try{SW=await (await fetch('/api/swarm')).json()}catch
  $('swpw').innerHTML=w.toFixed(0)+'<small>W</small>';$('swjth').textContent=ths>1?(w/(ths/1000)).toFixed(1)+' J/TH':'';
  const b=M.reduce((a,m)=>m.best>a.best?m:a,{best:0});$('swbest').textContent=b.best?sfx(b.best):'--';$('swbestby').textContent=b.best?(b.self?'this miner':b.name||b.ip):'';
  $('swscan').textContent=SW.scanning?'scanning…':'updates every 15 s';
+ if($('swbulk'))$('swbulk').textContent=SW.bulk||'idle';
  const up=s=>s>=86400?(s/86400|0)+'d '+(s/3600%24|0)+'h':(s/3600|0)+'h '+(s/60%60|0)+'m';
  $('swt').innerHTML='<tr><th>Miner</th><th>Model</th><th class="r">Hashrate</th><th class="r">Temp</th><th class="r">Power</th><th class="r">Shares</th><th class="r">Best</th><th class="r">Uptime</th><th></th></tr>'+
   M.map(m=>{const x=hr(m.hashrate);return `<tr class="${m.online?'':'off'}"><td><span class="dot ${m.online?'ok':''}" style="display:inline-block;margin-right:8px"></span>`+
@@ -789,6 +804,13 @@ async function loadSwarm(){try{SW=await (await fetch('/api/swarm')).json()}catch
 async function swAdd(){const ip=$('swip').value.trim();if(!ip)return;await act('/api/swarm',JSON.stringify({add:ip}));$('swip').value='';setTimeout(loadSwarm,3000)}
 async function swDel(ip){await act('/api/swarm',JSON.stringify({remove:ip}));loadSwarm()}
 async function swScan(){await act('/api/swarm',JSON.stringify({scan:true}));loadSwarm()}
+async function swSync(what){await act('/api/swarm',JSON.stringify({sync:what}));loadSwarm()}
+async function swBulkRel(){if(!confirm('Trigger GitHub release update on all online AxeForge peers?'))return;await act('/api/swarm',JSON.stringify({ota_release:true}));loadSwarm()}
+function swBulkOta(){const f=$('swotabin').files[0];if(!f)return toast('Choose a .bin file first');
+ if(!confirm('Push '+f.name+' to all online AxeForge peers?'))return;
+ const x=new XMLHttpRequest(),pb=$('swotaprog');pb.style.display='block';x.upload.onprogress=e=>pb.firstChild.style.width=(100*e.loaded/e.total)+'%';
+ x.onload=()=>{toast(x.responseText);loadSwarm()};x.onerror=()=>toast('Upload failed');
+ x.open('POST','/api/swarm/ota');x.setRequestHeader('X-AxeForge','1');if(SESS)x.setRequestHeader('X-AxeForge-Session',SESS);x.send(f)}
 setInterval(()=>{if(cur=='swarm'&&!document.hidden)loadSwarm()},5000);
 async function loadCfg(){cfg=await (await fetch('/api/settings')).json();setTheme(cfg.theme);
  // the board's limits go on the sliders first: a range input can't hold a value

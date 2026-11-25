@@ -368,6 +368,129 @@ static void scan()
     ESP_LOGI(TAG, "scan done, %d new miner(s)", found);
 }
 
+static volatile uint8_t s_sync_mask = 0;
+static volatile bool s_bulk_rel = false;
+static char *s_ota_buf = nullptr;
+static size_t s_ota_len = 0;
+static char s_bulk_msg[96] = "idle";
+
+// Copy IPs of online AxeForge peers under s_lock so HTTP calls don't hold the mutex.
+static int collect_af_peers(char ips[][16], int max_n)
+{
+    int n = 0;
+    Lock l;
+    for (int i = 0; i < s_count && n < max_n; i++) {
+        if (s_peers[i].online && strcmp(s_peers[i].kind, "AxeForge") == 0)
+            snprintf(ips[n++], 16, "%s", s_peers[i].ip);
+    }
+    return n;
+}
+
+static void run_sync(uint8_t mask)
+{
+    char ips[MAX_PEERS][16];
+    int n = collect_af_peers(ips, MAX_PEERS);
+    if (n == 0) {
+        snprintf(s_bulk_msg, sizeof(s_bulk_msg), "sync: no online AxeForge peers");
+        return;
+    }
+    char *pools_body = nullptr;
+    if (mask & 1) {
+        char *pj = settings::pools_to_json();
+        cJSON *r = cJSON_CreateObject();
+        cJSON_AddItemToObject(r, "pools", json_parse(pj));
+        free(pj);
+        cJSON_AddStringToObject(r, "mode", settings::get().pool_mode == PoolMode::Failover ? "failover" : "split");
+        pools_body = cJSON_PrintUnformatted(r);
+        cJSON_Delete(r);
+    }
+    char *disp_body = nullptr;
+    if (mask & 2) {
+        const Settings &s = settings::get();
+        cJSON *r = cJSON_CreateObject();
+        cJSON_AddNumberToObject(r, "theme", s.theme);
+        cJSON_AddNumberToObject(r, "bright", s.brightness);
+        cJSON_AddNumberToObject(r, "rotate", s.page_rotate_s);
+        cJSON_AddBoolToObject(r, "rot180", s.rotate_180);
+        cJSON_AddStringToObject(r, "pages", s.pages);
+        cJSON_AddBoolToObject(r, "clock24", s.clock_24h);
+        cJSON_AddStringToObject(r, "cur", s.currency);
+        disp_body = cJSON_PrintUnformatted(r);
+        cJSON_Delete(r);
+    }
+    int ok = 0, fail = 0;
+    for (int i = 0; i < n; i++) {
+        snprintf(s_bulk_msg, sizeof(s_bulk_msg), "syncing %d/%d (%s)...", i + 1, n, ips[i]);
+        bool peer_ok = true;
+        char url[64];
+        if (pools_body) {
+            snprintf(url, sizeof(url), "http://%s/api/pools", ips[i]);
+            if (http::post(url, pools_body, strlen(pools_body), "application/json", 5000) != 200) peer_ok = false;
+        }
+        if (disp_body) {
+            snprintf(url, sizeof(url), "http://%s/api/settings", ips[i]);
+            if (http::post(url, disp_body, strlen(disp_body), "application/json", 5000) != 200) peer_ok = false;
+        }
+        if (peer_ok) ok++;
+        else fail++;
+    }
+    free(pools_body);
+    free(disp_body);
+    snprintf(s_bulk_msg, sizeof(s_bulk_msg), "sync done: %d ok, %d failed", ok, fail);
+}
+
+static void run_bulk_release()
+{
+    char ips[MAX_PEERS][16];
+    int n = collect_af_peers(ips, MAX_PEERS);
+    if (n == 0) {
+        snprintf(s_bulk_msg, sizeof(s_bulk_msg), "update: no online AxeForge peers");
+        return;
+    }
+    int ok = 0, fail = 0;
+    for (int i = 0; i < n; i++) {
+        snprintf(s_bulk_msg, sizeof(s_bulk_msg), "updating %d/%d (%s)...", i + 1, n, ips[i]);
+        char url[64];
+        snprintf(url, sizeof(url), "http://%s/api/update/install", ips[i]);
+        if (http::post(url, "{}", 2, "application/json", 5000) == 200) ok++;
+        else fail++;
+    }
+    snprintf(s_bulk_msg, sizeof(s_bulk_msg), "release update triggered: %d ok, %d failed", ok, fail);
+}
+
+static void run_bulk_ota()
+{
+    char *buf = nullptr;
+    size_t len = 0;
+    {
+        Lock l;
+        buf = s_ota_buf;
+        len = s_ota_len;
+    }
+    if (!buf || !len) return;
+    char ips[MAX_PEERS][16];
+    int n = collect_af_peers(ips, MAX_PEERS);
+    if (n == 0) {
+        snprintf(s_bulk_msg, sizeof(s_bulk_msg), "OTA: no online AxeForge peers");
+    } else {
+        int ok = 0, fail = 0;
+        for (int i = 0; i < n; i++) {
+            snprintf(s_bulk_msg, sizeof(s_bulk_msg), "OTA %d/%d (%s)...", i + 1, n, ips[i]);
+            char url[64];
+            snprintf(url, sizeof(url), "http://%s/api/ota", ips[i]);
+            if (http::post(url, buf, len, "application/octet-stream", 30000) == 200) ok++;
+            else fail++;
+        }
+        snprintf(s_bulk_msg, sizeof(s_bulk_msg), "OTA done: %d ok, %d failed", ok, fail);
+    }
+    {
+        Lock l;
+        free(s_ota_buf);
+        s_ota_buf = nullptr;
+        s_ota_len = 0;
+    }
+}
+
 static void swarm_task(void *)
 {
     while (true) {
@@ -378,6 +501,16 @@ static void swarm_task(void *)
                 scan();
                 s_scanning = false;
             }
+            if (s_sync_mask) {
+                uint8_t m = s_sync_mask;
+                s_sync_mask = 0;
+                run_sync(m);
+            }
+            if (s_bulk_rel) {
+                s_bulk_rel = false;
+                run_bulk_release();
+            }
+            if (s_ota_buf) run_bulk_ota();
             poll_all();
         }
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(POLL_S * 1000));
@@ -422,6 +555,7 @@ char *to_json()
 {
     cJSON *r = cJSON_CreateObject();
     cJSON_AddBoolToObject(r, "scanning", s_scanning || s_scan);
+    cJSON_AddStringToObject(r, "bulk", s_bulk_msg);
     cJSON *arr = cJSON_AddArrayToObject(r, "miners");
 
     const MinerState &s = g_state;
@@ -495,5 +629,32 @@ void request_scan()
     s_scan = true;
     if (s_task) xTaskNotifyGive(s_task);
 }
+
+void request_sync(uint8_t mask)
+{
+    s_sync_mask |= mask;
+    snprintf(s_bulk_msg, sizeof(s_bulk_msg), "sync queued...");
+    if (s_task) xTaskNotifyGive(s_task);
+}
+
+void request_bulk_update()
+{
+    s_bulk_rel = true;
+    snprintf(s_bulk_msg, sizeof(s_bulk_msg), "release update queued...");
+    if (s_task) xTaskNotifyGive(s_task);
+}
+
+bool start_bulk_ota(char *psram_bin, size_t len)
+{
+    Lock l;
+    if (s_ota_buf) return false;
+    s_ota_buf = psram_bin;
+    s_ota_len = len;
+    snprintf(s_bulk_msg, sizeof(s_bulk_msg), "OTA queued (%u KB)...", (unsigned) (len / 1024));
+    if (s_task) xTaskNotifyGive(s_task);
+    return true;
+}
+
+const char *bulk_status() { return s_bulk_msg; }
 
 } // namespace swarm

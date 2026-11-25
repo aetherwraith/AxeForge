@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-8. **Swarm Bulk OTA & Settings Sync**
-   - Push a firmware `.bin` or sync pool/theme/display settings across all AxeForge miners on the Swarm tab in one click.
-
 10. **Latency & Stale-Share Aware Failover**
     - Track pool submit latency (`ping_ms`) and consecutive rejected/stale shares to temporarily demote degraded pools in Failover mode.
 

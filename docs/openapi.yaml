@@ -734,6 +734,7 @@ paths:
                 type: object
                 properties:
                   scanning: {type: boolean, description: a network scan is running}
+                  bulk: {type: string, description: status of the last bulk sync or OTA operation}
                   miners:
                     type: array
                     description: this miner first, then the peers
@@ -757,6 +758,11 @@ paths:
                         rejected: {type: integer}
                         ago: {type: integer, description: 'seconds since it last answered; 0 while online, -1 if not seen since this miner booted'}
     post:
-      summary: '{"add":"192.168.1.20"}, {"remove":"192.168.1.20"} or {"scan":true}'
+      summary: '{"add":"192.168.1.20"}, {"remove":"192.168.1.20"}, {"scan":true}, {"sync":"pools"|"display"|"all"}, or {"ota_release":true}'
+      responses:
+        '200': {$ref: '#/components/responses/Text'}
+  /api/swarm/ota:
+    post:
+      summary: Push a firmware .bin image to all online AxeForge peers
       responses:
         '200': {$ref: '#/components/responses/Text'}
