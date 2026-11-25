@@ -739,6 +739,13 @@ paths:
       summary: Save the custom layouts
       responses:
         '200': {$ref: '#/components/responses/Text'}
+  /api/events:
+    get:
+      summary: Server-Sent Events stream for live telemetry and logs
+      security: []
+      responses:
+        '200':
+          description: Event stream (text/event-stream)
   /api/swarm:
     get:
       summary: This miner and the others it knows on the network

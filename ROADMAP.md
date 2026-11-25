@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-1. **SSE Live Telemetry & Log Stream (`/api/events`)**
-   - Push live deltas (hashrate, temps, shares, tuner progress, new log lines) over Server-Sent Events instead of 2 s `/api/status` and 1 s `/api/logs` polling.
-
 2. **Scoped Read-Only / Automation API Token**
    - Allow a configurable Bearer token for `/api/metrics`, `/api/status`, and `/api/swarm` so Prometheus, Home Assistant, and Swarm polling keep working when 2FA (`otp::enabled()`) is enabled.
 

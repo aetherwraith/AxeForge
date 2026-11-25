@@ -1620,13 +1620,98 @@ const char *previous_restart()
     return prev;
 }
 
+struct SseClient {
+    httpd_req_t *req = nullptr;
+    uint32_t log_since = 0;
+};
+static SseClient s_sse[2];
+static SemaphoreHandle_t s_sse_lock;
+static bool s_sse_started = false;
+
+static void sse_task(void *)
+{
+    char *raw_log = (char *) heap_caps_malloc(2048, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    char *frame = (char *) heap_caps_malloc(3072, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    while (true) {
+        vTaskDelay(pdMS_TO_TICKS(1500));
+        if (!raw_log || !frame) continue;
+        const MinerState &s = g_state;
+        char status_frame[256];
+        int slen = snprintf(status_frame, sizeof(status_frame),
+                            "event: status\ndata: {\"uptime\":%lu,\"hashrate\":%.2f,\"chipTemp\":%.1f,"
+                            "\"vrTemp\":%.1f,\"pin\":%.2f,\"fanPct\":%u,\"accepted\":%lu,\"rejected\":%lu}\n\n",
+                            (unsigned long) s.uptime_s, s.hashrate_ghs, s.chip_temp_max, s.vr_temp,
+                            s.pin, s.fan_pct, (unsigned long) s.shares_accepted, (unsigned long) s.shares_rejected);
+        xSemaphoreTake(s_sse_lock, portMAX_DELAY);
+        for (int i = 0; i < 2; i++) {
+            httpd_req_t *r = s_sse[i].req;
+            if (!r) continue;
+            if (httpd_resp_send_chunk(r, status_frame, slen) != ESP_OK) {
+                httpd_req_async_handler_complete(r);
+                s_sse[i].req = nullptr;
+                continue;
+            }
+            uint32_t next = logbuf::read(s_sse[i].log_since, raw_log, 1500);
+            if (next != s_sse[i].log_since && raw_log[0]) {
+                int flen = snprintf(frame, 3072, "event: log\ndata: {\"next\":%lu,\"text\":\"", (unsigned long) next);
+                for (const char *p = raw_log; *p && flen + 8 < 3060; p++) {
+                    uint8_t c = (uint8_t) *p;
+                    if (c == '"' || c == '\\') { frame[flen++] = '\\'; frame[flen++] = c; }
+                    else if (c == '\n') { frame[flen++] = '\\'; frame[flen++] = 'n'; }
+                    else if (c == '\r') { frame[flen++] = '\\'; frame[flen++] = 'r'; }
+                    else if (c == '\t') { frame[flen++] = '\\'; frame[flen++] = 't'; }
+                    else if (c >= 0x20) frame[flen++] = (char) c;
+                }
+                flen += snprintf(frame + flen, 3072 - flen, "\"}\n\n");
+                if (httpd_resp_send_chunk(r, frame, flen) != ESP_OK) {
+                    httpd_req_async_handler_complete(r);
+                    s_sse[i].req = nullptr;
+                } else {
+                    s_sse[i].log_since = next;
+                }
+            }
+        }
+        xSemaphoreGive(s_sse_lock);
+    }
+}
+
+static esp_err_t events_get(httpd_req_t *req)
+{
+    if (!s_sse_lock) s_sse_lock = xSemaphoreCreateMutex();
+    if (!s_sse_started) {
+        s_sse_started = true;
+        xTaskCreateWithCaps(sse_task, "sse", 4096, NULL, 2, NULL, MALLOC_CAP_SPIRAM);
+    }
+    httpd_req_t *async = nullptr;
+    if (httpd_req_async_handler_begin(req, &async) != ESP_OK)
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sse init failed");
+    httpd_resp_set_type(async, "text/event-stream");
+    httpd_resp_set_hdr(async, "Cache-Control", "no-cache");
+    httpd_resp_set_hdr(async, "Connection", "keep-alive");
+    xSemaphoreTake(s_sse_lock, portMAX_DELAY);
+    int slot = -1;
+    for (int i = 0; i < 2; i++) if (!s_sse[i].req) { slot = i; break; }
+    if (slot < 0) {
+        xSemaphoreGive(s_sse_lock);
+        httpd_resp_send_err(async, HTTPD_500_INTERNAL_SERVER_ERROR, "too many sse clients");
+        httpd_req_async_handler_complete(async);
+        return ESP_OK;
+    }
+    char dummy[2];
+    s_sse[slot].log_since = logbuf::read(0, dummy, sizeof(dummy));
+    s_sse[slot].req = async;
+    httpd_resp_send_chunk(async, ": ok\n\n", 6);
+    xSemaphoreGive(s_sse_lock);
+    return ESP_OK;
+}
+
 void start()
 {
     ESP_LOGI(TAG, "firmware board tag %s", af_board_tag);
     httpd_handle_t h = NULL;
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.stack_size = 8192;
-    cfg.max_uri_handlers = 36;
+    cfg.max_uri_handlers = 40;
     cfg.recv_wait_timeout = 15;
     cfg.send_wait_timeout = 10;
     cfg.max_open_sockets = 8;
@@ -1638,6 +1723,7 @@ void start()
     const httpd_uri_t uris[] = {
         {"/", HTTP_GET, index_get, NULL},
         {"/api/status", HTTP_GET, status_get, NULL},
+        {"/api/events", HTTP_GET, events_get, NULL},
         {"/api/metrics", HTTP_GET, metrics_get, NULL},
         {"/favicon.ico", HTTP_GET, favicon_get, NULL},
         {"/api/history", HTTP_GET, history_get, NULL},

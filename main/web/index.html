@@ -1162,7 +1162,15 @@ function upload(f){if(!f)return;if(!confirm(`Install ${f.name} (${(f.size/1024|0
  x.onerror=()=>toast('Upload failed');x.open('POST','/api/ota');x.setRequestHeader('X-AxeForge','1');if(SESS)x.setRequestHeader('X-AxeForge-Session',SESS);
  x.onload=()=>{if(x.status==401){toast('Log in first, then upload again');askLogin()}else toast(x.responseText)};x.send(f)}
 
-loadCfg().then(()=>{tick();const h=location.hash.slice(1);if(titles[h])tab(h)});loadPools();loadLayout();chart();loadDay();
+let sseOk=false;
+function startSse(){if(!window.EventSource)return;const es=new EventSource('/api/events');
+ es.onopen=()=>{sseOk=true};es.onerror=()=>{sseOk=false};
+ es.addEventListener('status',e=>{try{const d=JSON.parse(e.data);const x=hr(d.hashrate);$('hrv').textContent=x[0];$('hru').textContent=x[1];
+  $('ct').textContent=d.chipTemp.toFixed(1)+'°C';$('vt').textContent=d.vrTemp.toFixed(1)+'°C';
+  $('pw').textContent=d.pin.toFixed(2)+' W';$('fn').textContent=d.fanPct+'%';$('kup').textContent=dur(d.uptime)}catch(ex){}});
+ es.addEventListener('log',e=>{if(cur!='system'||logPaused)return;try{const r=JSON.parse(e.data);if(r.text){const parts=r.text.split('\n');
+  if(logLines.length&&logSince)logLines[logLines.length-1]+=parts.shift();logLines.push(...parts);if(logLines.length>2000)logLines=logLines.slice(-1500);renderLog();logSince=r.next}}catch(ex){}})}
+loadCfg().then(()=>{tick();startSse();const h=location.hash.slice(1);if(titles[h])tab(h)});loadPools();loadLayout();chart();loadDay();
 setInterval(()=>{if(!document.hidden&&cur=='dash')loadDay();if(!document.hidden&&cur=='pools')loadScores()},60000);
-setInterval(()=>{if(!document.hidden)tick()},2000);setInterval(()=>{if(!document.hidden)chart()},30000);
+let tickCnt=0;setInterval(()=>{if(!document.hidden&&(!sseOk||++tickCnt%5==0))tick()},2000);setInterval(()=>{if(!document.hidden)chart()},30000);
 </script></body></html>
