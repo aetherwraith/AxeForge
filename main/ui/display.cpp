@@ -90,8 +90,9 @@ static void screen_idle_check()
     uint8_t min = settings::get().screen_off_min;
     if (!s_asleep && min && now - s_last_input_ms > (int64_t) min * 60000) {
         s_asleep = true;
-        backlight(0);
-        ESP_LOGI(TAG, "screen off after %u min idle", min);
+        uint8_t dim = settings::get().screen_dim_pct;
+        backlight(dim);
+        ESP_LOGI(TAG, "screen %s (%u%%) after %u min idle", dim ? "dimmed" : "off", dim, min);
     }
 }
 // Find this miner: blink the backlight, then put back what was there
@@ -103,7 +104,7 @@ static void identify_tick()
         was = true;
     } else if (was) {
         was = false;
-        backlight(s_asleep ? 0 : settings::get().brightness);
+        backlight(s_asleep ? settings::get().screen_dim_pct : settings::get().brightness);
     }
 }
 static volatile int s_pending_rot = -1;
@@ -448,7 +449,7 @@ static void display_task(void *)
         screen_idle_check();
         identify_tick();
         uint32_t wait = lv_timer_handler();
-        if (s_asleep) wait = 50;
+        if (s_asleep && settings::get().screen_dim_pct == 0) wait = 50;
         else {
             if (wait > 20) wait = 20;
             if (wait < 5) wait = 5;

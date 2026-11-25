@@ -64,7 +64,8 @@ struct Settings {
     uint8_t theme = 0;             // 0 = Forge (dark neon), 1 = Paper (e-ink style), 2 = Ember (Bitcoin orange), 3 = DTV (DTV Electronics, First Supporter)
     bool auto_theme = false;       // Paper 07:00-19:00, dark theme at night
     uint8_t brightness = 100;
-    uint8_t screen_off_min = 0;   // backlight off after this many idle minutes, 0 = never
+    uint8_t screen_off_min = 0;   // backlight off/dim after this many idle minutes, 0 = never
+    uint8_t screen_dim_pct = 0;   // 0 = off when idle, >0 = dim night-clock %
 
     // display
     uint8_t display_type = 0;      // 0 = 3.5" 480x320, 1 = LilyGo T-Display-S3 320x170

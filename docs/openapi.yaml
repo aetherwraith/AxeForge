@@ -72,6 +72,7 @@ components:
         tiles: {type: integer, description: 'dashboard cards: 0 bars, 1 gauges'}
         bright: {type: integer, description: 'screen brightness, %'}
         scroff: {type: integer}
+        scrdim: {type: integer, description: 'idle backlight % (0 = off, >0 = night-clock dim mode)'}
         defpage: {type: integer, description: index into pages}
         rotate: {type: integer}
         rot180: {type: boolean}

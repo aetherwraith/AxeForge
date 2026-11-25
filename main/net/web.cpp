@@ -554,6 +554,7 @@ static esp_err_t settings_get(httpd_req_t *req)
     cJSON_AddNumberToObject(r, "tiles", c.tiles);
     cJSON_AddNumberToObject(r, "bright", c.brightness);
     cJSON_AddNumberToObject(r, "scroff", c.screen_off_min);
+    cJSON_AddNumberToObject(r, "scrdim", c.screen_dim_pct);
     cJSON_AddNumberToObject(r, "defpage", c.default_page);
     cJSON_AddNumberToObject(r, "rotate", c.page_rotate_s);
     cJSON_AddBoolToObject(r, "rot180", c.rotate_180);
@@ -801,6 +802,7 @@ static esp_err_t settings_post(httpd_req_t *req)
     // display: applied immediately
     c.brightness = (uint8_t) get_int(j, "bright", c.brightness, 5, 100);
     c.screen_off_min = (uint8_t) get_int(j, "scroff", c.screen_off_min, 0, 240);
+    c.screen_dim_pct = (uint8_t) get_int(j, "scrdim", c.screen_dim_pct, 0, 50);
     c.default_page = (uint8_t) get_int(j, "defpage", c.default_page, 0, 4);
     c.page_rotate_s = (uint8_t) get_int(j, "rotate", c.page_rotate_s, 0, 255);
     bool rot = get_bool(j, "rot180", c.rotate_180);
