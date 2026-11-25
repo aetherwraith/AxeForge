@@ -151,13 +151,17 @@ void build(const StratumJob &sj, const char *extranonce1, uint32_t en2, int en2_
     w.extranonce2[en2_len * 2] = 0;
 
     // coinbase = coinb1 + en1 + en2 + coinb2
-    // Cache decoded coinb1+en1 and coinb2 across calls for the same StratumJob.
-    static char s_c_job[65] = "", s_c_en1[67] = "";
+    // Cache decoded coinb1+en1 and coinb2 across calls for the exact (coinb1, en1, coinb2) tuple.
+    static char *s_k_cb1 = nullptr, *s_k_cb2 = nullptr, *s_k_en1 = nullptr;
     static uint8_t *s_c_pre = nullptr, *s_c_post = nullptr;
     static size_t s_c_pre_len = 0, s_c_post_len = 0;
-    if (strcmp(s_c_job, sj.job_id) != 0 || strcmp(s_c_en1, extranonce1) != 0) {
-        free(s_c_pre);
-        free(s_c_post);
+    if (!s_k_cb1 || !s_k_cb2 || !s_k_en1 ||
+        strcmp(s_k_cb1, sj.coinb1) != 0 || strcmp(s_k_cb2, sj.coinb2) != 0 || strcmp(s_k_en1, extranonce1) != 0) {
+        free(s_k_cb1); free(s_k_cb2); free(s_k_en1);
+        free(s_c_pre); free(s_c_post);
+        s_k_cb1 = strdup(sj.coinb1);
+        s_k_cb2 = strdup(sj.coinb2);
+        s_k_en1 = strdup(extranonce1);
         size_t l1 = strlen(sj.coinb1), le1 = strlen(extranonce1), l2 = strlen(sj.coinb2);
         s_c_pre_len = (l1 + le1) / 2;
         s_c_post_len = l2 / 2;
@@ -169,8 +173,6 @@ void build(const StratumJob &sj, const char *extranonce1, uint32_t en2, int en2_
             s_c_pre_len = p;
         }
         if (s_c_post) s_c_post_len = hex2bin(sj.coinb2, s_c_post, s_c_post_len);
-        snprintf(s_c_job, sizeof(s_c_job), "%s", sj.job_id);
-        snprintf(s_c_en1, sizeof(s_c_en1), "%s", extranonce1);
     }
     size_t le2 = strlen(w.extranonce2) / 2;
     size_t bin_len = s_c_pre_len + le2 + s_c_post_len;

@@ -673,7 +673,7 @@ static void refresh_header()
     if (s_block_flash > 0) {
         s_block_flash--;
         lv_obj_clear_flag(s_banner, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_style_bg_color(s_banner, (block_flash & 2) ? C_GREEN : C_MAGENTA, 0);
+        lv_obj_set_style_bg_color(s_banner, (s_block_flash & 2) ? C_GREEN : C_MAGENTA, 0);
         lv_label_set_text(s_banner_lbl, LV_SYMBOL_OK "  BLOCK FOUND!  " LV_SYMBOL_OK);
     } else if (alarm && s.fault[0]) {
         lv_obj_clear_flag(s_banner, LV_OBJ_FLAG_HIDDEN);

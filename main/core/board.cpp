@@ -400,8 +400,9 @@ void read_telemetry()
         g_state.vin = tps546::vin();
         float v = tps546::vout();
         if (!isnan(v)) g_state.vout = v;  // a failed read keeps the last value
-        g_state.iout = tps546::iout();
-        float p = tps546::pout(v, g_state.iout);
+        float io = tps546::iout();
+        if (!isnan(io)) g_state.iout = io;
+        float p = tps546::pout(v, io);
         if (!isnan(p)) g_state.pin = p;
         g_state.iin = g_state.vin > 1 ? g_state.pin / g_state.vin : 0;
         return;

@@ -94,6 +94,10 @@ uint8_t active_theme()
 void pool_user(int pool, char *out, size_t len)
 {
     if (!len) return;
+    if (pool < 0 || pool >= AF_MAX_POOLS) {
+        out[0] = 0;
+        return;
+    }
     portENTER_CRITICAL(&s_user_mux);
     strncpy(out, s_settings.pools[pool].user, len - 1);
     portEXIT_CRITICAL(&s_user_mux);
@@ -149,7 +153,7 @@ void pools_from_json(const char *json)
             p.weight = (uint8_t) (v->valueint < 0 ? 0 : v->valueint > 100 ? 100 : v->valueint);
         copy_json_str(o, "sv2key", p.sv2_key, sizeof(p.sv2_key));
         if (cJSON_IsNumber(v = cJSON_GetObjectItem(o, "sdiff")))
-            p.suggest_diff = v->valueint < 0 ? 0 : (uint32_t) v->valueint;
+            p.suggest_diff = v->valuedouble < 0 ? 0 : (uint32_t) v->valuedouble;
     }
     cJSON_Delete(a);
 }
@@ -485,8 +489,13 @@ void own_worker(char *out, size_t len)
         if (s.pools[i].enabled && g_state.pools[i].connected) pick = i;
     for (int i = 0; i < AF_MAX_POOLS && pick < 0; i++)
         if (s.pools[i].enabled && s.pools[i].user[0]) pick = i;
-    if (pick < 0) out[0] = 0;
-    else worker_of(s.pools[pick].user, out, len);
+    if (pick < 0) {
+        if (len) out[0] = 0;
+    } else {
+        char user[sizeof(s.pools[pick].user)];
+        pool_user(pick, user, sizeof(user));
+        worker_of(user, out, len);
+    }
 }
 
 } // namespace settings

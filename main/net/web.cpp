@@ -1688,9 +1688,21 @@ static void sse_task(void *)
 {
     char *raw_log = (char *) heap_caps_malloc(2048, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     char *frame = (char *) heap_caps_malloc(3072, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!raw_log || !frame) {
+        free(raw_log);
+        free(frame);
+        s_sse_started = false;
+        vTaskDelete(NULL);
+        return;
+    }
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1500));
-        if (!raw_log || !frame) continue;
+        xSemaphoreTake(s_sse_lock, portMAX_DELAY);
+        bool any = s_sse[0].req || s_sse[1].req;
+        if (!any) {
+            xSemaphoreGive(s_sse_lock);
+            continue;
+        }
         const MinerState &s = g_state;
         char status_frame[256];
         int slen = snprintf(status_frame, sizeof(status_frame),
@@ -1698,7 +1710,6 @@ static void sse_task(void *)
                             "\"vrTemp\":%.1f,\"pin\":%.2f,\"fanPct\":%u,\"accepted\":%lu,\"rejected\":%lu}\n\n",
                             (unsigned long) s.uptime_s, s.hashrate_ghs, s.chip_temp_max, s.vr_temp,
                             s.pin, s.fan_pct, (unsigned long) s.shares_accepted, (unsigned long) s.shares_rejected);
-        xSemaphoreTake(s_sse_lock, portMAX_DELAY);
         for (int i = 0; i < 2; i++) {
             httpd_req_t *r = s_sse[i].req;
             if (!r) continue;
@@ -1755,8 +1766,12 @@ static esp_err_t events_get(httpd_req_t *req)
     }
     char dummy[2];
     s_sse[slot].log_since = logbuf::read(0, dummy, sizeof(dummy));
+    if (httpd_resp_send_chunk(async, ": ok\n\n", 6) != ESP_OK) {
+        xSemaphoreGive(s_sse_lock);
+        httpd_req_async_handler_complete(async);
+        return ESP_OK;
+    }
     s_sse[slot].req = async;
-    httpd_resp_send_chunk(async, ": ok\n\n", 6);
     xSemaphoreGive(s_sse_lock);
     return ESP_OK;
 }

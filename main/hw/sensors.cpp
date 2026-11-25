@@ -267,10 +267,9 @@ void set_pct(int channel, float pct)
 uint16_t rpm(int channel)
 {
     if (channel != 0) return 0;
-    uint8_t lsb = 0, msb = 0;
-    if (i2c_bus::read(EMC2103_ADDR, EMC2103_TACH_LSB, &lsb, 1) != ESP_OK) return 0;
-    if (i2c_bus::read(EMC2103_ADDR, EMC2103_TACH_MSB, &msb, 1) != ESP_OK) return 0;
-    uint16_t raw = (uint16_t) ((lsb | (msb << 8)) >> 3);
+    uint8_t buf[2] = {0, 0};
+    if (i2c_bus::read(EMC2103_ADDR, EMC2103_TACH_MSB, buf, 2) != ESP_OK) return 0;
+    uint16_t raw = (uint16_t) ((buf[1] | (buf[0] << 8)) >> 3);
     if (raw == 0 || raw >= 0x1fff) return 0;
     uint32_t r = 7864320u / raw;  // 2 edges per rev, default multiplier
     return r > 65535 || r == 82 ? 0 : (uint16_t) r;  // 82 rpm: the stalled-tach reading
@@ -301,10 +300,9 @@ bool check()
 
 static float diode(int i, uint8_t msb_reg, uint8_t lsb_reg)
 {
-    uint8_t msb = 0, lsb = 0;
-    if (i2c_bus::read(EMC2103_ADDR, msb_reg, &msb, 1) != ESP_OK) return NAN;
-    if (i2c_bus::read(EMC2103_ADDR, lsb_reg, &lsb, 1) != ESP_OK) return NAN;
-    uint16_t word = (msb << 8) | lsb;
+    uint8_t buf[2] = {0, 0};
+    if (i2c_bus::read(EMC2103_ADDR, msb_reg, buf, 2) != ESP_OK) return NAN;
+    uint16_t word = (buf[0] << 8) | buf[1];
     if (word == EMC2103_DIODE_FAULT) return NAN;
     return decode_diode_11bit(word, DIODE_SCALE, DIODE_OFFSET[i]);
 }
@@ -400,11 +398,10 @@ bool check()
 
 uint16_t rpm(int channel)
 {
-    uint8_t msb = 0, lsb = 0;
+    uint8_t buf[2] = {0, 0};
     uint8_t base = base_for(channel);
-    if (i2c_bus::read(EMC_ADDR, base + EMC_OFS_TACH_MSB, &msb, 1) != ESP_OK) return 0;
-    if (i2c_bus::read(EMC_ADDR, base + EMC_OFS_TACH_LSB, &lsb, 1) != ESP_OK) return 0;
-    int raw = (msb << 5) | (lsb >> 3);
+    if (i2c_bus::read(EMC_ADDR, base + EMC_OFS_TACH_MSB, buf, 2) != ESP_OK) return 0;
+    int raw = (buf[0] << 5) | (buf[1] >> 3);
     if (raw == 0 || raw >= 8191) return 0;
     // 2-pole fan, 5 edges, 32.768 kHz tach clock
     int r = 60 * 32768 * 4 / 2 / raw;

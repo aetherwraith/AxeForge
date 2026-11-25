@@ -81,8 +81,9 @@ static bool fetch_projected(const char *base, MempoolState &m)
         cJSON *r = cJSON_GetObjectItem(b, "feeRange");
         int rn = cJSON_GetArraySize(r);
         if (rn > 0) {
-            n.min_fee = (float) cJSON_GetArrayItem(r, 0)->valuedouble;
-            n.max_fee = (float) cJSON_GetArrayItem(r, rn - 1)->valuedouble;
+            cJSON *r0 = cJSON_GetArrayItem(r, 0), *r1 = cJSON_GetArrayItem(r, rn - 1);
+            if (cJSON_IsNumber(r0)) n.min_fee = (float) r0->valuedouble;
+            if (cJSON_IsNumber(r1)) n.max_fee = (float) r1->valuedouble;
         }
     }
     cJSON_Delete(a);
@@ -92,10 +93,12 @@ static bool fetch_projected(const char *base, MempoolState &m)
     if (body) {
         cJSON *f = json_parse(body);
         free(body);
-        m.fee_fast = (float) num(f, "fastestFee");
-        m.fee_hour = (float) num(f, "hourFee");
-        m.fee_eco = (float) num(f, "economyFee");
-        cJSON_Delete(f);
+        if (f) {
+            m.fee_fast = (float) num(f, "fastestFee");
+            m.fee_hour = (float) num(f, "hourFee");
+            m.fee_eco = (float) num(f, "economyFee");
+            cJSON_Delete(f);
+        }
     }
     return true;
 }

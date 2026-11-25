@@ -353,7 +353,8 @@ void read_telemetry()
         if (!isnan(v)) g_state.vin = v;
         float vo = tps546::vout();
         if (!isnan(vo)) g_state.vout = vo;  // a failed read keeps the last value
-        g_state.iout = tps546::iout();
+        float io = tps546::iout();
+        if (!isnan(io)) g_state.iout = io;
 #if AF_INA260
         // the INA260 sees the whole board's input: no allowance needed
         float iv, ia, iw;
