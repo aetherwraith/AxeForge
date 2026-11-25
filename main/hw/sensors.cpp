@@ -10,6 +10,14 @@
 
 static const char *TAG = "sensors";
 
+static float decode_diode_11bit(uint16_t word, float scale = 1.0f, float offset = 0.0f)
+{
+    int16_t raw = (int16_t) (word >> 5);
+    if (raw & 0x400) raw |= (int16_t) 0xF800;
+    float t = raw / 8.0f * scale + offset;
+    return t > -10 && t < 150 ? t : NAN;
+}
+
 #if CONFIG_AF_BOARD_NERDAXE || AF_EMC2101
 // ---------------------------------------------------------------- EMC2101 (NerdAxe, Supra, Ultra, Gamma, Gamma Duo)
 // One fan, the board temperature and the chip's diode. A DS4432U can sit at 0x48
@@ -174,11 +182,10 @@ float chip_diode(int index)
         if (i2c_bus::read(EMC2101_ADDR, EMC2101_EXTERNAL_MSB, &msb, 1) != ESP_OK) return NAN;
         if (i2c_bus::read(EMC2101_ADDR, EMC2101_EXTERNAL_LSB, &lsb, 1) != ESP_OK) return NAN;
     }
-    int16_t raw = (int16_t) (((msb << 8) | lsb) >> 5);  // 11-bit, 1/8 C
+    uint16_t word = (uint16_t) ((msb << 8) | lsb);
+    int16_t raw = (int16_t) (word >> 5);  // 11-bit, 1/8 C
     if (raw == EMC2101_DIODE_OPEN || raw == EMC2101_DIODE_SHORT) return NAN;
-    if (raw & 0x400) raw |= (int16_t) 0xF800;
-    float t = raw / 8.0f;
-    return t > -10 && t < 150 ? t : NAN;
+    return decode_diode_11bit(word);
 }
 
 } // namespace temp
@@ -294,10 +301,7 @@ static float diode(int i, uint8_t msb_reg, uint8_t lsb_reg)
     if (i2c_bus::read(EMC2103_ADDR, lsb_reg, &lsb, 1) != ESP_OK) return NAN;
     uint16_t word = (msb << 8) | lsb;
     if (word == EMC2103_DIODE_FAULT) return NAN;
-    int16_t raw = (int16_t) (word >> 5);
-    if (raw & 0x400) raw |= (int16_t) 0xF800;
-    float t = raw / 8.0f * DIODE_SCALE + DIODE_OFFSET[i];
-    return t > -10 && t < 150 ? t : NAN;
+    return decode_diode_11bit(word, DIODE_SCALE, DIODE_OFFSET[i]);
 }
 
 namespace temp {

@@ -14,6 +14,7 @@
 #if CONFIG_AF_BOARD_NEXUS
 
 #include "board.h"
+#include "board_common.h"
 
 #include <math.h>
 
@@ -250,32 +251,11 @@ void read_telemetry()
 Error check_faults()
 {
     if (!s_powered) return Error::None;
-    uint8_t sb = tps53647::status_byte(), si = tps53647::status_iout(), sv = tps53647::status_vout();
-    uint8_t sn = tps53647::status_input(), st = tps53647::status_temp();
-    if (sb == 0xff && si == 0xff && sv == 0xff && sn == 0xff && st == 0xff) return Error::PsuFault;
-    if (si != 0xff && (si & 0x80)) return Error::OverCurrent;
-    if (sv != 0xff && (sv & 0x90)) return Error::VoutFault;
-    if (st != 0xff && (st & 0x80)) return Error::VrOverTemp;
-    if (sn != 0xff && (sn & 0x94)) return Error::PsuFault;
-    return Error::None;
+    return board_common::check_pmbus_faults(tps53647::status_byte(), tps53647::status_iout(), tps53647::status_vout(),
+                                            tps53647::status_input(), tps53647::status_temp());
 }
 
-const char *error_text(Error e)
-{
-    switch (e) {
-    case Error::None: return "OK";
-    case Error::NoRegulator:
-        return "Voltage regulator not found";
-    case Error::NoTempSensor: return "Temperature sensor not responding";
-    case Error::NoChips: return "No BM1373 chips answered";
-    case Error::ChipMissing: return "A chip in a stacked voltage domain didn't answer";
-    case Error::PsuFault: return "PSU / input voltage fault";
-    case Error::OverCurrent: return "Core over-current";
-    case Error::VoutFault: return "Core voltage fault";
-    case Error::VrOverTemp: return "Regulator over-temperature";
-    }
-    return "?";
-}
+const char *error_text(Error e) { return board_common::error_text(e, "No BM1373 chips answered"); }
 
 } // namespace board
 

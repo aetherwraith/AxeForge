@@ -19,8 +19,8 @@
 #define PAPER_RED 0xb3261e
 #define PAPER_TRACK 0xd6d2c7
 
-struct Pair {
-    uint32_t from, to;
+struct ThemeRow {
+    uint32_t forge, ember, dtv, paper;
 };
 
 // Ember: near-black neutrals with Bitcoin orange as the one accent (the palette of
@@ -40,15 +40,6 @@ struct Pair {
 #define EMBER_BAD 0xf0564a
 #define EMBER_COOL 0x9aa4ff
 
-static const Pair EMBER_MAP[] = {
-    {0x070a10, EMBER_BG},     {0x0b1220, EMBER_BG},    {0x0a0f18, EMBER_BG},    {0x05070b, EMBER_BG},
-    {0x0f1520, EMBER_CARD},   {0x0b0f17, EMBER_CARD},  {0x141c2a, EMBER_SOFT},  {0x1c2635, EMBER_RULE}, {0x1c2636, EMBER_RULE},
-    {0xe6edf6, EMBER_TEXT},   {0xe8ecf5, EMBER_TEXT},  {0x9aa8bd, EMBER_DIM},   {0x6b7a90, EMBER_DIM},  {0x8d99ab, EMBER_DIM},
-    {0xc9d3e0, 0xc4c4cb},     {0x9fb4ff, 0xc4c4cb},
-    {0x00e5ff, EMBER_ORANGE}, {0xff2bd6, EMBER_AMBER}, {0x3da5ff, EMBER_AMBER}, {0x8b5cff, EMBER_COOL},
-    {0x2bff88, EMBER_OK},     {0xff9f1c, EMBER_WARN},  {0xffc83d, EMBER_WARN},  {0xff3b5c, EMBER_BAD},
-};
-
 // DTV: the DTV Electronics look from AxeMobile. Black, white text, DTV orange as the
 // accent, with a violet nebula tone and ember for the second accent.
 #define DTV_BG 0x000000  // AMOLED black: the pixels are off
@@ -66,24 +57,33 @@ static const Pair EMBER_MAP[] = {
 #define DTV_GOLD 0xffc266
 #define DTV_RED 0xf0434f
 
-static const Pair DTV_MAP[] = {
-    {0x070a10, DTV_BG},   {0x0b1220, DTV_BG2},    {0x0a0f18, DTV_BG},     {0x05070b, DTV_BG},
-    {0x0f1520, DTV_CARD}, {0x0b0f17, DTV_CARD},   {0x141c2a, DTV_SOFT},   {0x1c2635, DTV_RULE},
-    {0x1c2636, DTV_RULE}, {0xe6edf6, DTV_TEXT},   {0xe8ecf5, DTV_TEXT},   {0x9aa8bd, DTV_DIM},
-    {0x6b7a90, DTV_DIM},  {0x8d99ab, DTV_DIM},    {0xc9d3e0, 0xd9d9d9},   {0x9fb4ff, DTV_AMBER},
-    {0x00e5ff, DTV_ORANGE}, {0xff2bd6, DTV_EMBER}, {0x3da5ff, DTV_AMBER}, {0x8b5cff, DTV_VIOLET},
-    {0x2bff88, DTV_GREEN}, {0xff9f1c, DTV_AMBER},  {0xffc83d, DTV_GOLD},  {0xff3b5c, DTV_RED},
-};
-
-static const Pair PAPER_MAP[] = {
-    {0x070a10, PAPER_BG},   {0x0b1220, PAPER_BG},   {0x0a0f18, PAPER_BG},   {0x05070b, PAPER_BG},
-    {0x0f1520, PAPER_CARD}, {0x0b0f17, PAPER_CARD}, {0x141c2a, PAPER_SOFT}, {0x1c2635, PAPER_RULE}, {0x1c2636, PAPER_TRACK},
-    {0xe6edf6, PAPER_INK},  {0x9aa8bd, PAPER_DIM},  {0x6b7a90, PAPER_DIM},  {0x00e5ff, PAPER_INK},
-    {0xff2bd6, PAPER_INK},  {0x2bff88, PAPER_INK},  {0xff9f1c, PAPER_INK},  {0x8b5cff, PAPER_INK},
-    {0xff3b5c, PAPER_RED},  {0xffc83d, PAPER_INK},  {0xc9d3e0, PAPER_DIM},  {0x3da5ff, PAPER_INK},
-    {0xe8ecf5, PAPER_INK},  {0x9fb4ff, PAPER_INK},  {0x8d99ab, PAPER_DIM},
+static const ThemeRow PALETTE[] = {
+    {0x070a10, EMBER_BG,     DTV_BG,     PAPER_BG},
+    {0x0b1220, EMBER_BG,     DTV_BG2,    PAPER_BG},
+    {0x0a0f18, EMBER_BG,     DTV_BG,     PAPER_BG},
+    {0x05070b, EMBER_BG,     DTV_BG,     PAPER_BG},
+    {0x0f1520, EMBER_CARD,   DTV_CARD,   PAPER_CARD},
+    {0x0b0f17, EMBER_CARD,   DTV_CARD,   PAPER_CARD},
+    {0x141c2a, EMBER_SOFT,   DTV_SOFT,   PAPER_SOFT},
+    {0x1c2635, EMBER_RULE,   DTV_RULE,   PAPER_RULE},
+    {0x1c2636, EMBER_RULE,   DTV_RULE,   PAPER_TRACK},
+    {0xe6edf6, EMBER_TEXT,   DTV_TEXT,   PAPER_INK},
+    {0xe8ecf5, EMBER_TEXT,   DTV_TEXT,   PAPER_INK},
+    {0x9aa8bd, EMBER_DIM,    DTV_DIM,    PAPER_DIM},
+    {0x6b7a90, EMBER_DIM,    DTV_DIM,    PAPER_DIM},
+    {0x8d99ab, EMBER_DIM,    DTV_DIM,    PAPER_DIM},
+    {0xc9d3e0, 0xc4c4cb,     0xd9d9d9,   PAPER_DIM},
+    {0x9fb4ff, 0xc4c4cb,     DTV_AMBER,  PAPER_INK},
+    {0x00e5ff, EMBER_ORANGE, DTV_ORANGE, PAPER_INK},
+    {0xff2bd6, EMBER_AMBER,  DTV_EMBER,  PAPER_INK},
+    {0x3da5ff, EMBER_AMBER,  DTV_AMBER,  PAPER_INK},
+    {0x8b5cff, EMBER_COOL,   DTV_VIOLET, PAPER_INK},
+    {0x2bff88, EMBER_OK,     DTV_GREEN,  PAPER_INK},
+    {0xff9f1c, EMBER_WARN,   DTV_AMBER,  PAPER_INK},
+    {0xffc83d, EMBER_WARN,   DTV_GOLD,   PAPER_INK},
+    {0xff3b5c, EMBER_BAD,    DTV_RED,    PAPER_RED},
     // text drawn on an accent fill (tuner pill): accents become ink, so this becomes paper
-    {0x000000, PAPER_BG},
+    {0x000000, 0x000000,     0x000000,   PAPER_BG},
 };
 
 // mempool.space's fee scale (defaultMempoolFeeColors at feeLevels in the
@@ -122,19 +122,12 @@ bool dtv() { return current() == DTV; }
 uint32_t map(uint32_t rgb)
 {
     rgb &= 0xffffff;
-    if (ember()) {
-        for (const Pair &p : EMBER_MAP)
-            if (p.from == rgb) return p.to;
-        return rgb;
+    Id id = current();
+    if (id == FORGE) return rgb;
+    for (const ThemeRow &r : PALETTE) {
+        if (r.forge == rgb) return id == EMBER ? r.ember : id == DTV ? r.dtv : r.paper;
     }
-    if (dtv()) {
-        for (const Pair &p : DTV_MAP)
-            if (p.from == rgb) return p.to;
-        return rgb;
-    }
-    if (!paper()) return rgb;
-    for (const Pair &p : PAPER_MAP)
-        if (p.from == rgb) return p.to;
+    if (id != PAPER) return rgb;
     if (rgb == 0xffffff) return 0xffffff;  // white text on the red banner stays white
     float lum = (0.2126f * ((rgb >> 16) & 0xff) + 0.7152f * ((rgb >> 8) & 0xff) + 0.0722f * (rgb & 0xff)) / 255.0f;
     if (lum < 0.18f) return PAPER_CARD;  // dark fills become paper

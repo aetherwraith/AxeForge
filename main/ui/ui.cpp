@@ -665,6 +665,9 @@ static const char *phase_name(TunerPhase p)
     return "";
 }
 
+static uint32_t s_last_blocks = 0;
+static int s_block_flash = 0;
+
 static void refresh_header()
 {
     const MinerState &s = g_state;
@@ -687,14 +690,12 @@ static void refresh_header()
     else lv_label_set_text_fmt(s_uptime_lbl, "%02lu:%02lu:%02lu", (unsigned long) (u / 3600), (unsigned long) (u % 3600 / 60), (unsigned long) (u % 60));
 
     bool alarm = s.status == SysStatus::Fault || s.status == SysStatus::Overheat;
-    static uint32_t last_blocks = 0;
-    static int block_flash = 0;
-    if (s.blocks_found != last_blocks) {
-        last_blocks = s.blocks_found;
-        block_flash = 60;
+    if (s.blocks_found != s_last_blocks) {
+        s_last_blocks = s.blocks_found;
+        s_block_flash = 60;
     }
-    if (block_flash > 0) {
-        block_flash--;
+    if (s_block_flash > 0) {
+        s_block_flash--;
         lv_obj_clear_flag(s_banner, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_bg_color(s_banner, (block_flash & 2) ? C_GREEN : C_MAGENTA, 0);
         lv_label_set_text(s_banner_lbl, LV_SYMBOL_OK "  BLOCK FOUND!  " LV_SYMBOL_OK);
@@ -799,6 +800,7 @@ static void refresh_chips()
         lv_label_set_text(s_td_best, "Best  searching...");
     }
     if (t.trial_freq) lv_label_set_text_fmt(s_td_trial, "Trial %u MHz @ %u mV", t.trial_freq, t.trial_mv);
+    else lv_label_set_text(s_td_trial, "");
     lv_label_set_text_fmt(s_td_steps, "%u steps tested", t.steps_done);
     lv_label_set_text(s_td_note, t.note);
     lv_bar_set_value(s_td_bar, t.progress, LV_ANIM_ON);
@@ -907,6 +909,13 @@ static void refresh_clock()
             s_wx_drawn_code[0] = -1;
             draw_weather_icon(s_wx_icon, -1, true, C_PANEL);
         }
+        for (int i = 0; i < 3; i++) {
+            lv_label_set_text(s_wx_days[i].range, "--");
+            if (s_wx_drawn_code[i + 1] != -1) {
+                s_wx_drawn_code[i + 1] = -1;
+                draw_weather_icon(s_wx_days[i].icon, -1, true, C_DAYCARD);
+            }
+        }
     }
 }
 
@@ -1006,6 +1015,8 @@ void build()
 
     // first boot without Wi-Fi: open on the setup QR
     s_qr_text[0] = 0;
+    s_last_blocks = g_state.blocks_found;
+    s_block_flash = 0;
     load_order();
     if (settings::get().wifi_ssid[0]) show_page(settings::get().default_page % s_order_n);
     else show_kind(K_SYSTEM);

@@ -76,7 +76,7 @@ static lv_obj_t *s_pool_tot, *s_pool_rows[AF_POOLS];
 static lv_obj_t *s_chip_ghs[AF_NUM_ASICS], *s_chip_sub[AF_NUM_ASICS], *s_chip_bar[AF_NUM_ASICS];
 // system
 static lv_obj_t *s_qr, *s_sys;
-static char s_qr_text[96] = "";
+static char s_qr_text[192] = "";
 
 // ------------------------------------------------------------------ helpers
 static lv_obj_t *label(lv_obj_t *p, const lv_font_t *f, lv_color_t c, const char *t)
@@ -559,7 +559,7 @@ static void refresh_chips()
 static void refresh_system()
 {
     const MinerState &s = g_state;
-    char qr[96];
+    char qr[192];
     if (s.ap_ssid[0] && !s.ip[0]) {
         if (s.ap_pass[0]) {
             snprintf(qr, sizeof(qr), "WIFI:T:WPA;S:%s;P:%s;;", s.ap_ssid, s.ap_pass);
@@ -576,7 +576,7 @@ static void refresh_system()
                               s.ip, s.ssid, esp_app_get_description()->version, s.chips_detected, asic::MODEL);
     }
     if (strcmp(qr, s_qr_text)) {
-        strcpy(s_qr_text, qr);
+        snprintf(s_qr_text, sizeof(s_qr_text), "%s", qr);
         lv_qrcode_update(s_qr, s_qr_text, strlen(s_qr_text));
     }
 }

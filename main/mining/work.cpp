@@ -18,13 +18,6 @@ static uint8_t hexval(char c)
     return 0;
 }
 
-static void dsha256(const uint8_t *data, size_t len, uint8_t out[32])
-{
-    uint8_t tmp[32];
-    mbedtls_sha256(data, len, tmp, 0);
-    mbedtls_sha256(tmp, 32, out, 0);
-}
-
 static void swap_words(const uint8_t *in, uint8_t *out, size_t len)
 {
     for (size_t i = 0; i < len; i += 4) {
@@ -52,6 +45,13 @@ static double le256_to_double(const uint8_t *h)
 }
 
 namespace work {
+
+void dsha256(const uint8_t *data, size_t len, uint8_t out[32])
+{
+    uint8_t tmp[32];
+    mbedtls_sha256(data, len, tmp, 0);
+    mbedtls_sha256(tmp, 32, out, 0);
+}
 
 size_t hex2bin(const char *hex, uint8_t *bin, size_t bin_len)
 {

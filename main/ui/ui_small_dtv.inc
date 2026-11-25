@@ -194,6 +194,8 @@ static void dtv_build_system(lv_obj_t *p)
     d_ver = dlabel(p, &lv_font_montserrat_12, D_DIM, 128, 116);
 }
 
+static lv_timer_t *d_splash_timer = nullptr;
+
 static void splash_cb(lv_timer_t *t)
 {
     d_splash_pct += 4;
@@ -201,6 +203,7 @@ static void splash_cb(lv_timer_t *t)
     if (d_splash_pct >= 100) {
         if (d_splash) lv_obj_del(d_splash);
         d_splash = d_splash_bar = nullptr;
+        d_splash_timer = nullptr;
         lv_timer_del(t);
     }
 }
@@ -208,6 +211,10 @@ static void splash_cb(lv_timer_t *t)
 // The boot screen: the logo and "first supporter" while the bar fills, ~2.5 s
 static void dtv_build_splash(lv_obj_t *scr)
 {
+    if (d_splash_timer) {
+        lv_timer_del(d_splash_timer);
+        d_splash_timer = nullptr;
+    }
     d_splash = box(scr, 0, 0, W, H, lv_color_hex(0x000000), 0);
     lv_obj_t *logo = lv_img_create(d_splash);
     lv_img_set_src(logo, &dtv_logo_56);
@@ -221,11 +228,16 @@ static void dtv_build_splash(lv_obj_t *scr)
     lv_label_set_text_fmt(by, "powered by AxeForge %s", esp_app_get_description()->version);
     lv_obj_align(by, LV_ALIGN_TOP_MID, 0, 140);
     d_splash_pct = 0;
-    lv_timer_create(splash_cb, 100, nullptr);
+    d_splash_timer = lv_timer_create(splash_cb, 100, nullptr);
 }
 
 static void dtv_build(lv_obj_t *scr)
 {
+    if (d_splash_timer) {
+        lv_timer_del(d_splash_timer);
+        d_splash_timer = nullptr;
+        d_splash = d_splash_bar = nullptr;
+    }
     s_nshp = 0;
     dtv_build_frame(scr);
     for (int i = 0; i < NUM_KINDS; i++) s_pages[i] = dtv_page(scr);
@@ -400,7 +412,7 @@ static void dtv_refresh_chips()
 static void dtv_refresh_system()
 {
     const MinerState &s = g_state;
-    char qr[96];
+    char qr[192];
     static const char *k_run[5] = {"host", "ip", "wifi", "uptime", "chips"};
     static const char *k_ap[5] = {"SETUP", "1. join", "password", "2. open", ""};
     const bool ap = s.ap_ssid[0] && !s.ip[0];
@@ -425,7 +437,7 @@ static void dtv_refresh_system()
     }
     lv_label_set_text_fmt(d_ver, "AxeForge %s", esp_app_get_description()->version);
     if (strcmp(qr, s_qr_text)) {
-        strcpy(s_qr_text, qr);
+        snprintf(s_qr_text, sizeof(s_qr_text), "%s", qr);
         lv_qrcode_update(d_qr, s_qr_text, strlen(s_qr_text));
     }
 }

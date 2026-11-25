@@ -6,6 +6,7 @@
 #if CONFIG_AF_BOARD_NERDAXE
 
 #include "board.h"
+#include "board_common.h"
 
 #include <math.h>
 
@@ -209,18 +210,7 @@ Error check_faults()
 
 const char *error_text(Error e)
 {
-    switch (e) {
-    case Error::None: return "OK";
-    case Error::NoRegulator: return "Voltage DAC (DS4432U) not found";
-    case Error::NoTempSensor: return "Temperature sensor not responding";
-    case Error::NoChips: return "No BM1366 chip answered";
-    case Error::ChipMissing: return "A chip in a stacked voltage domain didn't answer";
-    case Error::PsuFault: return "5 V input too low";
-    case Error::OverCurrent: return "Core over-current";
-    case Error::VoutFault: return "Core voltage fault";
-    case Error::VrOverTemp: return "Regulator over-temperature";
-    }
-    return "?";
+    return board_common::error_text(e, "No BM1366 chip answered", "Voltage DAC (DS4432U) not found", "5 V input too low");
 }
 
 } // namespace board

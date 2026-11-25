@@ -2,19 +2,14 @@
 
 #include <ctype.h>
 #include <string.h>
-#include "mbedtls/sha256.h"
+#include "mining/work.h"
 
 namespace {
 
 // ---------------------------------------------------------------- base58check
 const char B58[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-void dsha256(const uint8_t *d, size_t n, uint8_t out[32])
-{
-    uint8_t t[32];
-    mbedtls_sha256(d, n, t, 0);
-    mbedtls_sha256(t, 32, out, 0);
-}
+void dsha256(const uint8_t *d, size_t n, uint8_t out[32]) { work::dsha256(d, n, out); }
 
 // Decodes into `out` (big-endian bytes, leading zeros kept); returns the length or 0.
 size_t b58_decode(const char *s, uint8_t *out, size_t cap)

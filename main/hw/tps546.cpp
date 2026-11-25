@@ -4,6 +4,7 @@
 #include <string.h>
 #include "esp_log.h"
 #include "i2c_bus.h"
+#include "pmbus_util.h"
 
 static const char *TAG = "tps546";
 
@@ -119,26 +120,8 @@ static int s_vout_exp = -9;      // ULINEAR16 exponent from VOUT_MODE
 static bool s_relative = false;  // VOUT_MODE REL: limits are ratios of VOUT_COMMAND
 static float s_vout_cmd = 0;
 
-static float slinear11_to_float(uint16_t value)
-{
-    int32_t exponent = value >> 11;
-    int32_t mantissa = value & 0x7ff;
-    if (exponent & 0x10) exponent |= 0xffffffe0;
-    if (mantissa & 0x400) mantissa |= 0xfffff800;
-    return ldexpf((float) mantissa, exponent);
-}
-
-static uint16_t float_to_slinear11(float x)
-{
-    if (x <= 0.0f) return 0;
-    int32_t e = -16, m = 0;
-    for (; e <= 15; e++) {
-        m = (int32_t) roundf(ldexpf(x, -e));
-        if (m >= 0 && m <= 1023) break;
-    }
-    if (e > 15) return 0;
-    return (uint16_t) (((e & 0x1f) << 11) | (m & 0x7ff));
-}
+static float slinear11_to_float(uint16_t value) { return pmbus_util::slinear11_to_float(value); }
+static uint16_t float_to_slinear11(float x) { return pmbus_util::float_to_slinear11(x); }
 
 static float ulinear16_to_float(uint16_t v) { return ldexpf((float) v, s_vout_exp); }
 static uint16_t float_to_ulinear16(float x) { return (uint16_t) lroundf(ldexpf(x, -s_vout_exp)); }

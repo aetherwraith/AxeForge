@@ -257,6 +257,8 @@ static void b_build_system(lv_obj_t *p)
     lv_obj_set_pos(logo, 214, 214);
 }
 
+static lv_timer_t *b_splash_timer = nullptr;
+
 static void b_splash_cb(lv_timer_t *t)
 {
     b_splash_pct += 4;
@@ -264,12 +266,17 @@ static void b_splash_cb(lv_timer_t *t)
     if (b_splash_pct >= 100) {
         if (b_splash) lv_obj_del(b_splash);
         b_splash = b_splash_bar = nullptr;
+        b_splash_timer = nullptr;
         lv_timer_del(t);
     }
 }
 
 static void b_build_splash(lv_obj_t *scr)
 {
+    if (b_splash_timer) {
+        lv_timer_del(b_splash_timer);
+        b_splash_timer = nullptr;
+    }
     b_splash = d_box(scr, 0, 0, LCD_H_RES, LCD_V_RES, lv_color_hex(0x000000), 0);
     lv_obj_t *logo = lv_img_create(b_splash);
     lv_img_set_src(logo, &dtv_logo_56);
@@ -285,11 +292,16 @@ static void b_build_splash(lv_obj_t *scr)
     lv_label_set_text_fmt(by, "powered by AxeForge %s", esp_app_get_description()->version);
     lv_obj_align(by, LV_ALIGN_TOP_MID, 0, 246);
     b_splash_pct = 0;
-    lv_timer_create(b_splash_cb, 100, nullptr);
+    b_splash_timer = lv_timer_create(b_splash_cb, 100, nullptr);
 }
 
 static void b_build(lv_obj_t *scr)
 {
+    if (b_splash_timer) {
+        lv_timer_del(b_splash_timer);
+        b_splash_timer = nullptr;
+        b_splash = b_splash_bar = nullptr;
+    }
     s_nshp = 0;
     b_build_frame(scr);
     for (int i = 0; i < NUM_KINDS; i++) s_pages[i] = b_page(scr);

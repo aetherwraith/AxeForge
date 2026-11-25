@@ -265,7 +265,7 @@ static esp_err_t status_get(httpd_req_t *req)
     cJSON_AddStringToObject(r, "version", esp_app_get_description()->version);
     cJSON_AddBoolToObject(r, "otaPending", ota_guard::pending());
     {
-        const fwupdate::Info &u = fwupdate::info();
+        const fwupdate::Info u = fwupdate::info();
         cJSON *uj = cJSON_AddObjectToObject(r, "update");
         cJSON_AddStringToObject(uj, "latest", u.latest);
         cJSON_AddBoolToObject(uj, "newer", u.newer);
@@ -1269,7 +1269,8 @@ static char *qr_svg(const char *text)
     if (!qrcodegen_encodeText(text, tmp, qr, qrcodegen_Ecc_MEDIUM, 1, 10, qrcodegen_Mask_AUTO, true)) return nullptr;
     int n = qrcodegen_getSize(qr);
     size_t cap = 256 + (size_t) n * n * 24;
-    char *svg = (char *) malloc(cap);
+    char *svg = (char *) heap_caps_malloc(cap, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!svg) svg = (char *) malloc(cap);
     if (!svg) return nullptr;
     size_t o = snprintf(svg, cap,
                         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 %d %d' shape-rendering='crispEdges'>"
@@ -1371,7 +1372,7 @@ static bool ends_with(const char *s, size_t n, const char *suffix)
 
 static bool host_is_local(const char *host)
 {
-    if (host[0] == '[') return true;  // IPv6 literal
+    if (host[0] == '[') return strchr(host, ']') != nullptr;  // IPv6 literal
     const char *colon = strchr(host, ':');
     size_t n = colon ? (size_t) (colon - host) : strlen(host);
     if (n == 0) return false;

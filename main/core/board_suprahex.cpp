@@ -8,6 +8,7 @@
 #if AF_HEX_FAMILY
 
 #include "board.h"
+#include "board_common.h"
 
 #include <math.h>
 
@@ -231,37 +232,17 @@ void log_regulator(const char *why) { tps546::log_status(why); }
 Error check_faults()
 {
     if (!s_powered) return Error::None;
-    uint8_t sb = tps546::status_byte();
-    uint8_t si = tps546::status_iout();
-    uint8_t sv = tps546::status_vout();
-    uint8_t sn = tps546::status_input();
-    uint8_t st = tps546::status_temp();
-    if (sb == 0xff && si == 0xff && sv == 0xff && sn == 0xff && st == 0xff) return Error::PsuFault;
-    if (si != 0xff && (si & 0x80)) return Error::OverCurrent;
-    if (sv != 0xff && (sv & 0x90)) return Error::VoutFault;
-    if (st != 0xff && (st & 0x80)) return Error::VrOverTemp;
-    if (sn != 0xff && (sn & 0x94)) return Error::PsuFault;
-    return Error::None;
+    return board_common::check_pmbus_faults(tps546::status_byte(), tps546::status_iout(), tps546::status_vout(),
+                                            tps546::status_input(), tps546::status_temp());
 }
 
 const char *error_text(Error e)
 {
-    switch (e) {
-    case Error::None: return "OK";
-    case Error::NoRegulator: return "Voltage regulator not found";
-    case Error::NoTempSensor: return "Temperature sensor not responding";
 #if AF_ASIC_BM1366
-    case Error::NoChips: return "No BM1366 chips answered";
+    return board_common::error_text(e, "No BM1366 chips answered");
 #else
-    case Error::NoChips: return "No BM1368 chips answered";
+    return board_common::error_text(e, "No BM1368 chips answered");
 #endif
-    case Error::ChipMissing: return "A chip in a stacked voltage domain didn't answer";
-    case Error::PsuFault: return "PSU / input voltage fault";
-    case Error::OverCurrent: return "Core over-current";
-    case Error::VoutFault: return "Core voltage fault";
-    case Error::VrOverTemp: return "Regulator over-temperature";
-    }
-    return "?";
 }
 
 } // namespace board

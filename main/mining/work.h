@@ -40,6 +40,7 @@ namespace work {
 
 size_t hex2bin(const char *hex, uint8_t *bin, size_t bin_len);
 void bin2hex(const uint8_t *bin, size_t len, char *hex);
+void dsha256(const uint8_t *data, size_t len, uint8_t out[32]);
 
 // Builds the coinbase, merkle root and both the verification Work and the
 // chip job. extranonce1 is hex.

@@ -13,6 +13,7 @@
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_netif.h"
+#include "mdns.h"
 
 #include "core/state.h"
 #include "hw/tmp451.h"
@@ -84,6 +85,11 @@ static void on_event(void *, esp_event_base_t base, int32_t id, void *data)
         snprintf(s_ip, sizeof(s_ip), IPSTR, IP2STR(&ev->ip_info.ip));
         s_up = true;
         ESP_LOGW(TAG, "Ethernet up, ip %s", s_ip);
+        if (mdns_init() == ESP_OK) {
+            mdns_hostname_set(g_state.hostname);
+            mdns_instance_name_set(g_state.hostname);
+            mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
+        }
         wifi::eth_changed();
     }
 }

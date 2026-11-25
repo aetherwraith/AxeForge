@@ -47,7 +47,7 @@ struct Info {
 };
 
 void start();             // background task; after Wi-Fi is up
-const Info &info();
+Info info();
 const char *state_name(State s);
 void check_now();         // ask GitHub again, soon
 bool install_now();       // false: busy, or nothing newer to install

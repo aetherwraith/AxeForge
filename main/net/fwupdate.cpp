@@ -141,10 +141,17 @@ void Writer::abort()
 // ------------------------------------------------------------------ self-update
 
 static Info s_info = {"", false, State::Idle, 0, ""};
+static portMUX_TYPE s_info_mux = portMUX_INITIALIZER_UNLOCKED;
 static volatile bool s_check_req = false, s_install_req = false;
 static char s_failed_tag[24] = "";  // auto-update doesn't retry a release that failed until the next check
 
-const Info &info() { return s_info; }
+Info info()
+{
+    portENTER_CRITICAL(&s_info_mux);
+    Info copy = s_info;
+    portEXIT_CRITICAL(&s_info_mux);
+    return copy;
+}
 
 const char *state_name(State s)
 {
@@ -219,25 +226,32 @@ static void do_check()
     }
     if (c) esp_http_client_cleanup(c);
     if (!tag[0]) {
+        portENTER_CRITICAL(&s_info_mux);
         snprintf(s_info.msg, sizeof(s_info.msg), "Couldn't reach GitHub to check for updates");
         s_info.state = State::Idle;
+        portEXIT_CRITICAL(&s_info_mux);
         return;
     }
     const char *cur = esp_app_get_description()->version;
+    bool newer = is_newer(tag, cur);
+    portENTER_CRITICAL(&s_info_mux);
     snprintf(s_info.latest, sizeof(s_info.latest), "%s", tag);
-    s_info.newer = is_newer(tag, cur);
-    if (s_info.newer) snprintf(s_info.msg, sizeof(s_info.msg), "AxeForge %s is available", tag);
+    s_info.newer = newer;
+    if (newer) snprintf(s_info.msg, sizeof(s_info.msg), "AxeForge %s is available", tag);
     else snprintf(s_info.msg, sizeof(s_info.msg), "Up to date (latest release %s)", tag);
-    ESP_LOGI(TAG, "latest release %s, running %s%s", tag, cur, s_info.newer ? ": update available" : "");
     s_info.state = State::Idle;
+    portEXIT_CRITICAL(&s_info_mux);
+    ESP_LOGI(TAG, "latest release %s, running %s%s", tag, cur, newer ? ": update available" : "");
 }
 
 static void fail(const char *why)
 {
     ESP_LOGE(TAG, "update failed: %s", why);
+    portENTER_CRITICAL(&s_info_mux);
     snprintf(s_info.msg, sizeof(s_info.msg), "Update failed: %s", why);
     snprintf(s_failed_tag, sizeof(s_failed_tag), "%s", s_info.latest);
     s_info.state = State::Failed;
+    portEXIT_CRITICAL(&s_info_mux);
 }
 
 static void do_install()
