@@ -1122,6 +1122,24 @@ static esp_err_t pools_post(httpd_req_t *req)
     return httpd_resp_sendstr(req, "Pools saved. Reconnecting...");
 }
 
+static esp_err_t pools_test_post(httpd_req_t *req)
+{
+    char *body = recv_body(req, 512);
+    cJSON *j = body ? json_parse(body) : nullptr;
+    free(body);
+    if (!j) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad json");
+    char host[96] = "";
+    copy_str(j, "url", host, sizeof(host));
+    int port = get_int(j, "port", 3333, 1, 65535);
+    int proto = get_int(j, "proto", 0, 0, 2);
+    cJSON_Delete(j);
+    int ms = 0;
+    bool ok = pools::test_connect(host, (uint16_t) port, (uint8_t) proto, &ms);
+    char msg[160];
+    snprintf(msg, sizeof(msg), ok ? "Connected to %s:%d in %d ms." : "Could not connect to %s:%d.", host, port, ms);
+    return httpd_resp_sendstr(req, msg);
+}
+
 // ------------------------------------------------------------------ logs
 static esp_err_t logs_get(httpd_req_t *req)
 {
@@ -1761,6 +1779,7 @@ void start()
         {"/api/energy", HTTP_POST, energy_post, NULL},
         {"/api/pools", HTTP_GET, pools_get, NULL},
         {"/api/pools", HTTP_POST, pools_post, NULL},
+        {"/api/pools/test", HTTP_POST, pools_test_post, NULL},
         {"/api/logs", HTTP_GET, logs_get, NULL},
         {"/api/screen.bmp", HTTP_GET, screen_get, NULL},
         {"/api/page", HTTP_POST, page_post, NULL},

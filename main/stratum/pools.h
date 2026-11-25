@@ -32,4 +32,7 @@ void submit(int pool, const Work &w, uint32_t nonce, uint32_t version, int chip)
 // Restart connections after settings changed.
 void reconfigure();
 
+// Quick TCP/TLS handshake test for the web UI before saving pools.
+bool test_connect(const char *host, uint16_t port, uint8_t proto, int *ms);
+
 } // namespace pools

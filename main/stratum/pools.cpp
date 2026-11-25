@@ -63,6 +63,7 @@ static uint32_t shown_diff(double d) { return d >= 4294967295.0 ? UINT32_MAX : (
 #define ID_SUBSCRIBE 2
 #define ID_AUTHORIZE 3
 #define ID_SUGGEST 4
+#define ID_EXTRANONCE 5
 #define ID_CHIP_AUTH_BASE 10  // + chip; more than any board has chips, below the submit ids
 #define ID_SUBMIT_BASE 100
 #define SUGGEST_DIFF 1024
@@ -408,6 +409,18 @@ static void v1_message(Pool &p, const char *line)
         } else if (!strcmp(m, "mining.set_version_mask")) {
             cJSON *v = cJSON_GetArrayItem(params, 0);
             if (cJSON_IsString(v)) p.version_mask = strtoul(v->valuestring, NULL, 16);
+        } else if (!strcmp(m, "mining.set_extranonce")) {
+            cJSON *en1 = cJSON_GetArrayItem(params, 0);
+            cJSON *en2 = cJSON_GetArrayItem(params, 1);
+            if (cJSON_IsString(en1) && cJSON_IsNumber(en2) && valid_en1(en1->valuestring) &&
+                en2->valuedouble >= EN2_MIN && en2->valuedouble <= EN2_MAX) {
+                xSemaphoreTake(p.lock, portMAX_DELAY);
+                snprintf(p.en1, sizeof(p.en1), "%s", en1->valuestring);
+                p.en2_len = en2->valueint;
+                p.clean = true;
+                xSemaphoreGive(p.lock);
+                ESP_LOGI(TAG, "[%d] extranonce updated (len=%d)", p.idx, p.en2_len);
+            }
         }
     } else if (cJSON_IsNumber(id)) {
         int rid = id->valueint;
@@ -463,8 +476,9 @@ static void run_v1(Pool &p, const PoolCfg &cfg)
     snprintf(line, sizeof(line),
              "{\"id\":%d,\"method\":\"mining.configure\",\"params\":[[\"version-rolling\"],"
              "{\"version-rolling.mask\":\"ffffffff\"}]}\n"
-             "{\"id\":%d,\"method\":\"mining.subscribe\",\"params\":[\"AxeForge/%s\"]}\n",
-             ID_CONFIGURE, ID_SUBSCRIBE, app->version);
+             "{\"id\":%d,\"method\":\"mining.subscribe\",\"params\":[\"AxeForge/%s\"]}\n"
+             "{\"id\":%d,\"method\":\"mining.extranonce.subscribe\",\"params\":[]}\n",
+             ID_CONFIGURE, ID_SUBSCRIBE, app->version, ID_EXTRANONCE);
     send_line(p, line);
     char u_esc[192], p_esc[128];
     json_escape(cfg.user, u_esc, sizeof(u_esc));
@@ -997,6 +1011,20 @@ void submit(int i, const Work &w, uint32_t nonce, uint32_t version, int chip)
              (unsigned long) p.submit_id++, u_esc, w.job_id, w.extranonce2,
              (unsigned long) w.ntime, (unsigned long) nonce, (unsigned long) (version & w.version_mask));
     send_line(p, line);
+}
+
+bool test_connect(const char *host, uint16_t port, uint8_t proto, int *ms)
+{
+    if (!host || !host[0] || !port) return false;
+    esp_transport_handle_t t = (proto == (uint8_t) PoolProto::V1Tls) ? esp_transport_ssl_init() : esp_transport_tcp_init();
+    if (!t) return false;
+    if (proto == (uint8_t) PoolProto::V1Tls) esp_transport_ssl_crt_bundle_attach(t, esp_crt_bundle_attach);
+    int64_t t0 = esp_timer_get_time();
+    bool ok = esp_transport_connect(t, host, port, 3000) >= 0;
+    if (ms) *ms = (int) ((esp_timer_get_time() - t0) / 1000);
+    esp_transport_close(t);
+    esp_transport_destroy(t);
+    return ok;
 }
 
 } // namespace pools

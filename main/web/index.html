@@ -956,12 +956,15 @@ function dustLive(d){if(!d)return;const st=$('dustst');
 /* ---------------- pools editor */
 let P={pools:[],mode:'split'};
 async function loadPools(){P=await (await fetch('/api/pools')).json();setMode(P.mode);renderPools()}
+async function testPool(i){const p=P.pools[i];if(!p||!p.url)return toast('Enter a pool host first');
+ toast('Testing '+p.url+':'+p.port+'...');await act('/api/pools/test',JSON.stringify({url:p.url,port:p.port,proto:p.proto}))}
 function setMode(m){P.mode=m;document.querySelectorAll('#pmodeseg button').forEach(b=>b.classList.toggle('on',b.dataset.m==m));
  $('pmodenote').textContent=m=='split'?'Every enabled pool gets jobs in proportion to its weight. Shares go to the pool whose job found them.':'All work goes to the first connected pool in the list; the next one takes over if it drops.';
  document.querySelectorAll('.wrow').forEach(e=>e.style.display=m=='split'?'':'none')}
 document.querySelectorAll('#pmodeseg button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 function renderPools(){$('pooleds').innerHTML=P.pools.map((p,i)=>`<div class="pool ${p.enabled?'':'off'}" id="pe${i}">
  <div class="hd"><span class="dot" id="pd${i}"></span><b>Pool ${i+1}${i==0?' · primary':''}</b><span class="tag" id="ps${i}"></span>
+  <button class="btn alt sm" type="button" style="padding:2px 8px;font-size:11px;margin-right:6px" onclick="testPool(${i})">Test</button>
   <input class="tg" type="checkbox" ${p.enabled?'checked':''} onchange="P.pools[${i}].enabled=this.checked;$('pe${i}').classList.toggle('off',!this.checked)"></div>
  <div class="pstat" id="pl${i}"></div>
  <div class="row"><div style="grid-column:span 2"><label>Host</label><input value="${esc(p.url)}" oninput="P.pools[${i}].url=this.value.replace(/^stratum\\+(tcp|ssl):\\/\\//,'')" placeholder="pool.example.com"></div>

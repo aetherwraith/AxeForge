@@ -748,6 +748,11 @@ paths:
       responses:
         '200':
           description: Event stream (text/event-stream)
+  /api/pools/test:
+    post:
+      summary: Test TCP/TLS connectivity to a pool host and port
+      responses:
+        '200': {$ref: '#/components/responses/Text'}
   /api/swarm:
     get:
       summary: This miner and the others it knows on the network

@@ -81,9 +81,17 @@ static void invalidate_pool(int pool)
 // share is filtered out on the chip.
 static uint32_t asic_difficulty(double pool_diff)
 {
-    if (pool_diff < ASIC_DIFF_MIN) return ASIC_DIFF_MIN;
-    if (pool_diff > ASIC_DIFF_MAX) return ASIC_DIFF_MAX;
-    return (uint32_t) pool_diff;
+    uint32_t d = pool_diff < ASIC_DIFF_MIN ? ASIC_DIFF_MIN
+                 : pool_diff > ASIC_DIFF_MAX ? ASIC_DIFF_MAX
+                                             : (uint32_t) pool_diff;
+    if (g_state.hashrate_ghs > 100.0f && d > ASIC_DIFF_MIN) {
+        uint8_t nc = g_state.chips_detected ? g_state.chips_detected : AF_NUM_ASICS;
+        double chip_ghs = (double) g_state.hashrate_ghs / (nc ? nc : 1);
+        uint32_t target = (uint32_t) (chip_ghs * 1e9 / 4294967296.0 / 1.5);
+        if (target < ASIC_DIFF_MIN) target = ASIC_DIFF_MIN;
+        if (target < d) d = target;  // never exceed pool_diff, or valid shares are dropped on chip
+    }
+    return d;
 }
 
 // Keeps the per-pool payout check and logs when it changes, so a solo pool that
