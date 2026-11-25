@@ -305,6 +305,13 @@ void load()
     get_u8(h, "schedend", s.sched_end_h);
     get_u16(h, "schedw", s.sched_power_w);
     get_u8(h, "schedfan", s.sched_fan_max);
+    get_bool(h, "fcuron", s.fan_curve_on);
+    get_u8(h, "fct0", s.fan_c_t[0]);
+    get_u8(h, "fct1", s.fan_c_t[1]);
+    get_u8(h, "fct2", s.fan_c_t[2]);
+    get_u8(h, "fcp0", s.fan_c_p[0]);
+    get_u8(h, "fcp1", s.fan_c_p[1]);
+    get_u8(h, "fcp2", s.fan_c_p[2]);
     uint8_t nev_fixed = 0;
     nvs_get_u8(h, "nevfix", &nev_fixed);
     nvs_close(h);
@@ -418,6 +425,13 @@ void save()
     nvs_set_u8(h, "schedend", s.sched_end_h);
     nvs_set_u16(h, "schedw", s.sched_power_w);
     nvs_set_u8(h, "schedfan", s.sched_fan_max);
+    nvs_set_u8(h, "fcuron", s.fan_curve_on);
+    nvs_set_u8(h, "fct0", s.fan_c_t[0]);
+    nvs_set_u8(h, "fct1", s.fan_c_t[1]);
+    nvs_set_u8(h, "fct2", s.fan_c_t[2]);
+    nvs_set_u8(h, "fcp0", s.fan_c_p[0]);
+    nvs_set_u8(h, "fcp1", s.fan_c_p[1]);
+    nvs_set_u8(h, "fcp2", s.fan_c_p[2]);
     nvs_commit(h);
     nvs_close(h);
 }

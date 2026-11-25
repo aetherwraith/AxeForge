@@ -400,6 +400,12 @@ hashrate as one chip per pool — or uses them as failover.</div>
 <div class="card"><h3>Cooling</h3><div class="row">
 <div><label title="The fans aim to hold the hottest chip here. Lower is cooler and louder. The tuner&#x27;s ceiling is separate and compiled in.">Target chip temp (°C) <span class="rv" id="ftv"></span></label><input type="range" name="fantgt" min="40" max="70" oninput="ftv.textContent=this.value"></div>
 <div><label title="The fans never go below this. Slim fans may need 40% or more to start; a fan that stops at the floor is given a kick and the floor is raised for the session.">Minimum fan speed (%) <span class="rv" id="fmv"></span></label><input type="range" name="fanmin" min="10" max="100" oninput="fmv.textContent=this.value"></div></div>
+<div class="switch" style="margin-top:8px"><div><b>3-point fan curve</b><span>Interpolate fan speed across 3 temperature breakpoints instead of a single PI target.</span></div><input class="tg" type="checkbox" name="fancurve"></div>
+<div class="row" style="margin-top:6px">
+ <div><label>Point 1 (°C / %)</label><div style="display:flex;gap:6px"><input name="fct0" type="number" min="30" max="75" step="1"><input name="fcp0" type="number" min="10" max="100" step="1"></div></div>
+ <div><label>Point 2 (°C / %)</label><div style="display:flex;gap:6px"><input name="fct1" type="number" min="30" max="75" step="1"><input name="fcp1" type="number" min="10" max="100" step="1"></div></div>
+ <div><label>Point 3 (°C / %)</label><div style="display:flex;gap:6px"><input name="fct2" type="number" min="30" max="75" step="1"><input name="fcp2" type="number" min="10" max="100" step="1"></div></div>
+</div>
 <div class="row" style="margin-top:6px">
 <div><label title="Auto follows the chip temperature target; Manual holds the duty below. Lost sensors and the last degrees before a ceiling still force 100%.">Fan 1 · ASIC header</label><div class="fanst" id="fan1st">--</div><select name="fmode0"><option value="0">Auto (follows chip temp)</option><option value="1">Manual</option></select>
 <label title="Fixed duty for this header while its mode is Manual.">Manual speed <span class="rv" id="fm0v"></span></label><input type="range" name="fman0" min="20" max="100" oninput="fm0v.textContent=this.value+'%'"></div>

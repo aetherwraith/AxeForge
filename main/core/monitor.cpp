@@ -200,8 +200,22 @@ static void monitor_task(void *)
             if (!was_powered) kick[0] = kick[1] = FAN_START_KICK_S;  // start from a firm spin
             was_powered = true;
             // a lost sensor reads as -1 here, which the PI treats as "full fan"
-            float a = asic_pi.update(g_state.temp_ok ? g_state.chip_temp_max : -1, cfg.fan_target_c,
-                                     fmaxf(cfg.fan_min_pct, fan_floor[0]));
+            float floor_a = fmaxf(cfg.fan_min_pct, fan_floor[0]);
+            float a;
+            if (cfg.fan_curve_on && g_state.temp_ok) {
+                float t = g_state.chip_temp_max;
+                if (t <= cfg.fan_c_t[0]) a = cfg.fan_c_p[0];
+                else if (t >= cfg.fan_c_t[2]) a = cfg.fan_c_p[2];
+                else if (t <= cfg.fan_c_t[1] && cfg.fan_c_t[1] > cfg.fan_c_t[0])
+                    a = cfg.fan_c_p[0] + (t - cfg.fan_c_t[0]) * (cfg.fan_c_p[1] - cfg.fan_c_p[0]) / (float) (cfg.fan_c_t[1] - cfg.fan_c_t[0]);
+                else if (cfg.fan_c_t[2] > cfg.fan_c_t[1])
+                    a = cfg.fan_c_p[1] + (t - cfg.fan_c_t[1]) * (cfg.fan_c_p[2] - cfg.fan_c_p[1]) / (float) (cfg.fan_c_t[2] - cfg.fan_c_t[1]);
+                else a = cfg.fan_c_p[2];
+                if (a < floor_a) a = floor_a;
+                if (a > 100) a = 100;
+            } else {
+                a = asic_pi.update(g_state.temp_ok ? g_state.chip_temp_max : -1, cfg.fan_target_c, floor_a);
+            }
             float v = vr_pi.update(g_state.vr_temp_ok ? g_state.vr_temp : -1, VR_FAN_TARGET_C,
                                    fmaxf(cfg.fan_min_pct, fan_floor[1]));
 #if AF_HEX_FAMILY

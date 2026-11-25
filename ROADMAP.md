@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-12. **Multi-Point Fan Curve**
-    - Complement the single PI target (`fantgt`) with a 2–3 point fan curve (quiet floor + ramp slope) so desktop miners stay silent at low ambient temps and ramp smoothly before the 3 °C ceiling boost.
-
 13. **Stale vs. Hardware-Error Breakdown**
     - Track and display stale/duplicate share counts separately from ASIC hardware errors on *Pools* and *Dashboard* to distinguish network/pool lag from unstable overclocks.
 

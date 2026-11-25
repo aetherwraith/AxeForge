@@ -526,6 +526,13 @@ static esp_err_t settings_get(httpd_req_t *req)
     cJSON_AddNumberToObject(r, "tchipc", c.tuner_chip_c);
     cJSON_AddNumberToObject(r, "tvrc", c.tuner_vr_c);
     cJSON_AddNumberToObject(r, "fanmin", c.fan_min_pct);
+    cJSON_AddBoolToObject(r, "fancurve", c.fan_curve_on);
+    cJSON_AddNumberToObject(r, "fct0", c.fan_c_t[0]);
+    cJSON_AddNumberToObject(r, "fct1", c.fan_c_t[1]);
+    cJSON_AddNumberToObject(r, "fct2", c.fan_c_t[2]);
+    cJSON_AddNumberToObject(r, "fcp0", c.fan_c_p[0]);
+    cJSON_AddNumberToObject(r, "fcp1", c.fan_c_p[1]);
+    cJSON_AddNumberToObject(r, "fcp2", c.fan_c_p[2]);
     cJSON_AddNumberToObject(r, "fmode0", c.fan_mode[0]);
     cJSON_AddNumberToObject(r, "fmode1", c.fan_mode[1]);
     cJSON_AddNumberToObject(r, "fman0", c.fan_manual[0]);
@@ -755,6 +762,13 @@ static esp_err_t settings_post(httpd_req_t *req)
     c.tuner_vr_c = (uint8_t) tvr;
     c.fan_target_c = (uint8_t) get_int(j, "fantgt", c.fan_target_c, 40, 70);
     c.fan_min_pct = (uint8_t) get_int(j, "fanmin", c.fan_min_pct, 10, 100);
+    c.fan_curve_on = get_bool(j, "fancurve", c.fan_curve_on);
+    c.fan_c_t[0] = (uint8_t) get_int(j, "fct0", c.fan_c_t[0], 30, 75);
+    c.fan_c_t[1] = (uint8_t) get_int(j, "fct1", c.fan_c_t[1], 30, 75);
+    c.fan_c_t[2] = (uint8_t) get_int(j, "fct2", c.fan_c_t[2], 30, 75);
+    c.fan_c_p[0] = (uint8_t) get_int(j, "fcp0", c.fan_c_p[0], 10, 100);
+    c.fan_c_p[1] = (uint8_t) get_int(j, "fcp1", c.fan_c_p[1], 10, 100);
+    c.fan_c_p[2] = (uint8_t) get_int(j, "fcp2", c.fan_c_p[2], 10, 100);
     c.fan_mode[0] = (uint8_t) get_int(j, "fmode0", c.fan_mode[0], 0, 1);
     c.fan_mode[1] = (uint8_t) get_int(j, "fmode1", c.fan_mode[1], 0, 1);
     c.fan_manual[0] = (uint8_t) get_int(j, "fman0", c.fan_manual[0], 20, 100);

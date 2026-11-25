@@ -53,6 +53,9 @@ struct Settings {
 
     uint8_t fan_target_c = 60;   // PID target for hottest chip
     uint8_t fan_min_pct = 30;
+    bool fan_curve_on = false;   // 3-point curve instead of single PI target
+    uint8_t fan_c_t[3] = {45, 58, 66};
+    uint8_t fan_c_p[3] = {25, 55, 95};
     // per fan header: 0 = auto (temperature loop), 1 = manual duty
     uint8_t fan_mode[2] = {0, 0};
     uint8_t fan_manual[2] = {60, 60};

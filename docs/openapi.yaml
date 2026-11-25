@@ -54,6 +54,13 @@ components:
         autoupdate: {type: boolean, description: 'install a newer GitHub release by itself (checked every 6 h); off: the web UI offers it'}
         fantgt: {type: number, description: target chip temperature for the automatic fan, °C}
         fanmin: {type: integer, description: 'lowest automatic fan speed, %'}
+        fancurve: {type: boolean, description: use 3-point fan curve instead of single PI target}
+        fct0: {type: integer, description: fan curve point 1 temp (°C)}
+        fct1: {type: integer, description: fan curve point 2 temp (°C)}
+        fct2: {type: integer, description: fan curve point 3 temp (°C)}
+        fcp0: {type: integer, description: fan curve point 1 speed (%)}
+        fcp1: {type: integer, description: fan curve point 2 speed (%)}
+        fcp2: {type: integer, description: fan curve point 3 speed (%)}
         fmode0: {type: integer, description: fan 1 mode}
         fmode1: {type: integer, description: fan 2 mode}
         fman0: {type: integer, description: 'fan 1 manual speed, %'}
