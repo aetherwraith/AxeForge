@@ -451,6 +451,7 @@ static bool tune_chips(uint16_t f, float &ghs)
         return true;
     const int chips = g_state.chips_detected < AF_NUM_ASICS ? g_state.chips_detected : AF_NUM_ASICS;
     const int fmax = gates::max_freq();
+    const float t_ceil = chip_ceiling();
     int8_t off[AF_NUM_ASICS];
     memcpy(off, cfg.chip_off, sizeof(off));
     bool frozen[AF_NUM_ASICS] = {};
@@ -460,6 +461,10 @@ static bool tune_chips(uint16_t f, float &ghs)
         int n = 0;
         for (int i = 0; i < chips; i++) {
             if (frozen[i] || off[i] + CHIP_STEP > CHIP_MAX_MHZ || held(f) + off[i] + CHIP_STEP > fmax) continue;
+            if (g_state.chip_temp_own[i] && g_state.chip_temp[i] >= t_ceil - 2.0f) {
+                frozen[i] = true;
+                continue;
+            }
             off[i] += CHIP_STEP;
             raised[i] = true;
             n++;
@@ -483,7 +488,8 @@ static bool tune_chips(uint16_t f, float &ghs)
             // a chip over its own limit fails; with the total over its limit, so does
             // any raised chip above the total limit. A chip that drops work without
             // reporting errors fails on its hashrate.
-            bool bad = stop || e > WORST_CHIP_PCT || ghs < MIN_EFFICIENCY * want ||
+            bool hot_chip = g_state.chip_temp_own[i] && g_state.chip_temp[i] > t_ceil;
+            bool bad = stop || hot_chip || e > WORST_CHIP_PCT || ghs < MIN_EFFICIENCY * want ||
                        (r.verdict == Verdict::Errors && e > MAX_ERR_PCT);
             if (bad) {
                 off[i] -= CHIP_STEP;

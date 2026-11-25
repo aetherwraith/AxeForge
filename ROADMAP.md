@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-3. **Proactive Thermal-Aware Per-Chip Clock Balancing**
-   - Balance per-chip clock offsets in `tuner.cpp` against each chip's die temperature headroom (`tmp451::chip(i)` / `chip_temp_own[i]`) before hitting a chain-wide thermal wall.
-
 4. **Dynamic ASIC Difficulty Auto-Scaling & `mining.extranonce.subscribe`**
    - Target a steady per-chip nonce rate (~1–2 nonces/s) via `mining.suggest_difficulty`, and support `mining.extranonce.subscribe` in Stratum V1 plus `POST /api/pools/test` before saving.
 
