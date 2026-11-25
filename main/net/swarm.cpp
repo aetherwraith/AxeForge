@@ -11,6 +11,7 @@
 #include "freertos/task.h"
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
+#include "mdns.h"
 #include "nvs.h"
 
 #include "core/board_config.h"
@@ -282,6 +283,29 @@ static void scan()
     if (!inet_aton(g_state.ip, &self)) return;
     uint32_t base = ntohl(self.s_addr) & 0xFFFFFF00u;
     int found = 0;
+    // Fast path: mDNS discovery for _http._tcp peers before the /24 subnet scan.
+    mdns_result_t *mres = nullptr;
+    if (mdns_query_ptr("_http", "_tcp", 1500, MAX_PEERS, &mres) == ESP_OK && mres) {
+        for (mdns_result_t *r = mres; r; r = r->next) {
+            if (r->port && r->port != 80) continue;
+            for (mdns_ip_addr_t *a = r->addr; a; a = a->next) {
+                if (a->addr.type != ESP_IPADDR_TYPE_V4) continue;
+                if (a->addr.u_addr.ip4.addr == self.s_addr) continue;
+                char ip[16];
+                in_addr ia;
+                ia.s_addr = a->addr.u_addr.ip4.addr;
+                snprintf(ip, sizeof(ip), "%s", inet_ntoa(ia));
+                Peer p = {};
+                strcpy(p.ip, ip);
+                if (fetch(ip, p) && swarm::add(ip)) {
+                    found++;
+                    ESP_LOGI(TAG, "mDNS found %s %s at %s", p.kind, p.model, ip);
+                }
+                break;
+            }
+        }
+        mdns_query_results_free(mres);
+    }
     ESP_LOGI(TAG, "scanning %s/24", g_state.ip);
     int h = 1, stalls = 0;
     while (h < 255) {
