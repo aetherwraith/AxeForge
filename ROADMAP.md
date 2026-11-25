@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-18. **Auto-Tune Profile Presets (Quiet / Balanced / Max OC)**
-    - One-click presets in *Tuning* that configure power cap, fan target, and goal (`efficiency` vs `max hashrate`) together.
-
 19. **Per-Chip Degradation Alerts (Discord / Telegram)**
     - Send a warning notification when a single chip's error rate exceeds a user-defined threshold or its hashrate lags >15% behind siblings, catching drying thermal paste before an emergency stall cut.
 

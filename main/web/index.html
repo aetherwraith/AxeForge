@@ -371,6 +371,12 @@ hashrate as one chip per pool — or uses them as failover.</div>
 
 <!-- ============================== TUNING -->
 <section id="tuning"><form data-f><div class="card"><h3>Mode</h3>
+<div class="btns" style="margin-bottom:10px">
+ <button class="btn alt sm" type="button" onclick="tunePreset('quiet')">Quiet</button>
+ <button class="btn alt sm" type="button" onclick="tunePreset('balanced')">Balanced</button>
+ <button class="btn alt sm" type="button" onclick="tunePreset('max')">Max OC</button>
+ <span class="meta">One-click presets (uses board limits)</span>
+</div>
 <div class="switch"><div><b>Auto-tune</b><span>Climbs the clock, adds voltage on errors, stops at thermal/power/error walls, then trims voltage back down.</span></div><input class="tg" type="checkbox" name="atune"></div>
 <div class="row" style="margin-top:12px"><div><label title="Most hashrate climbs until a thermal, power or error wall. Under a power limit it stops at your watts. Best efficiency holds the voltage and climbs only while joules per terahash keep falling.">Tuning goal</label><select name="tgoal" id="tgoal" onchange="goalUi()"><option value="0">Most hashrate</option><option value="1">Most hashrate under a power limit</option><option value="2">Best efficiency (J/TH)</option></select></div>
 <div id="pcaprow"><label title="Measured at the 12 V input. The tuner stops climbing before the miner draws more than this. Always below the board&#x27;s compiled-in limit.">Power limit (W, input)</label><input name="pcap" type="number" min="0" max="2000" step="1" placeholder="board limit"></div></div>
@@ -813,6 +819,12 @@ async function loadSwarm(){try{SW=await (await fetch('/api/swarm')).json()}catch
 async function swAdd(){const ip=$('swip').value.trim();if(!ip)return;await act('/api/swarm',JSON.stringify({add:ip}));$('swip').value='';setTimeout(loadSwarm,3000)}
 async function swDel(ip){await act('/api/swarm',JSON.stringify({remove:ip}));loadSwarm()}
 async function swScan(){await act('/api/swarm',JSON.stringify({scan:true}));loadSwarm()}
+async function tunePreset(p){const mp=(cfg.limits&&cfg.limits.maxPower)||30;
+ const m={quiet:{atune:true,tgoal:2,pcap:Math.round(mp*0.65),fantgt:64,tchipc:66,tvrc:75},
+  balanced:{atune:true,tgoal:1,pcap:Math.round(mp*0.85),fantgt:60,tchipc:0,tvrc:0},
+  max:{atune:true,tgoal:0,pcap:0,fantgt:55,tchipc:0,tvrc:0}}[p];if(!m)return;
+ Object.entries(m).forEach(([k,v])=>{const e=document.querySelector(`#tuning [name=${k}]`);if(!e)return;if(e.type=='checkbox')e.checked=!!v;else e.value=v;e.dispatchEvent(new Event('input'))});
+ goalUi();await act('/api/settings',JSON.stringify(m));loadCfg()}
 async function swSync(what){await act('/api/swarm',JSON.stringify({sync:what}));loadSwarm()}
 async function swBulkRel(){if(!confirm('Trigger GitHub release update on all online AxeForge peers?'))return;await act('/api/swarm',JSON.stringify({ota_release:true}));loadSwarm()}
 function swBulkOta(){const f=$('swotabin').files[0];if(!f)return toast('Choose a .bin file first');
