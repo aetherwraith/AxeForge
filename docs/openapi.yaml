@@ -250,6 +250,8 @@ paths:
                   rssi: {type: integer, description: dBm, 0 when not on Wi-Fi}
                   ssid: {type: string}
                   worker: {type: string, description: the worker name this miner submits under}
+                  gitSha: {type: string, description: short git commit SHA of the firmware build}
+                  buildTime: {type: string, description: firmware compile date and time}
                   otaPending: {type: boolean, description: a new firmware is on trial under the OTA guard}
                   update:
                     type: object

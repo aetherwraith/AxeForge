@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-14. **Build Commit / Timestamp on *System → Device***
-    - Expose the short git SHA and build timestamp alongside the firmware version so custom/forked builds are immediately distinguishable in the web UI and Swarm table.
-
 15. **Configurable Log / BitHalo Quiet Mode**
     - Allow toggling or rate-limiting per-share `share accepted` logging on UART0 for users on ultra-low-difficulty pools where the BitHalo pulses too frequently.
 

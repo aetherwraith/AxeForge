@@ -268,7 +268,12 @@ static esp_err_t status_get(httpd_req_t *req)
     char worker[33];
     settings::own_worker(worker, sizeof(worker));
     cJSON_AddStringToObject(r, "worker", worker);
-    cJSON_AddStringToObject(r, "version", esp_app_get_description()->version);
+    const esp_app_desc_t *app = esp_app_get_description();
+    cJSON_AddStringToObject(r, "version", app->version);
+    cJSON_AddStringToObject(r, "gitSha", AF_GIT_SHA);
+    char btime[40];
+    snprintf(btime, sizeof(btime), "%s %s", app->date, app->time);
+    cJSON_AddStringToObject(r, "buildTime", btime);
     cJSON_AddBoolToObject(r, "otaPending", ota_guard::pending());
     {
         const fwupdate::Info u = fwupdate::info();

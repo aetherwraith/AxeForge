@@ -60,5 +60,17 @@ if(NOT CMAKE_BUILD_EARLY_EXPANSION)
     target_add_binary_data(${COMPONENT_LIB} ${AF_UI_GZ} BINARY)
 endif()
 
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    OUTPUT_VARIABLE AF_GIT_SHA
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT AF_GIT_SHA)
+    set(AF_GIT_SHA "unknown")
+endif()
+target_compile_definitions(${COMPONENT_LIB} PRIVATE AF_GIT_SHA="${AF_GIT_SHA}")
+
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-missing-field-initializers -Wno-format-truncation
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-enum-enum-conversion>)
