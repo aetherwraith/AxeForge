@@ -14,6 +14,7 @@
 #include "freertos/idf_additions.h"
 #include "freertos/task.h"
 
+#include "core/json_util.h"
 #include "core/settings.h"
 #include "core/state.h"
 #include "net/http_util.h"
@@ -40,26 +41,20 @@ static bool send_json(const char *url, const char *body)
 static void deliver(const char *text)
 {
     const Settings &s = settings::get();
-    char line[MSG_LEN + 48];
+    char line[MSG_LEN + 48], esc[MSG_LEN * 2 + 64];
     snprintf(line, sizeof(line), "%s: %s", g_state.hostname[0] ? g_state.hostname : "AxeForge", text);
+    json_escape(line, esc, sizeof(esc));
     if (s.discord_url[0]) {
-        cJSON *o = cJSON_CreateObject();
-        cJSON_AddStringToObject(o, "content", line);
-        char *body = cJSON_PrintUnformatted(o);
-        cJSON_Delete(o);
+        char body[sizeof(esc) + 32];
+        snprintf(body, sizeof(body), "{\"content\":\"%s\"}", esc);
         send_json(s.discord_url, body);
-        free(body);
     }
     if (s.tg_token[0] && s.tg_chat[0]) {
-        char url[128];
+        char url[128], chat_esc[64], body[sizeof(esc) + 112];
         snprintf(url, sizeof(url), "https://api.telegram.org/bot%s/sendMessage", s.tg_token);
-        cJSON *o = cJSON_CreateObject();
-        cJSON_AddStringToObject(o, "chat_id", s.tg_chat);
-        cJSON_AddStringToObject(o, "text", line);
-        char *body = cJSON_PrintUnformatted(o);
-        cJSON_Delete(o);
+        json_escape(s.tg_chat, chat_esc, sizeof(chat_esc));
+        snprintf(body, sizeof(body), "{\"chat_id\":\"%s\",\"text\":\"%s\"}", chat_esc, esc);
         send_json(url, body);
-        free(body);
     }
 }
 

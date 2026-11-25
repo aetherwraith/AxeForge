@@ -22,11 +22,7 @@ static const char *TAG = "mempool";
 
 static TaskHandle_t s_task;
 
-static double num(cJSON *o, const char *k)
-{
-    cJSON *v = cJSON_GetObjectItem(o, k);
-    return cJSON_IsNumber(v) ? v->valuedouble : 0;
-}
+static inline double num(cJSON *o, const char *k) { return json_num(o, k); }
 
 static bool fetch_blocks(const char *base, MempoolState &m)
 {

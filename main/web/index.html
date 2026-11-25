@@ -739,7 +739,8 @@ function chips(c){$('chips').innerHTML=c.map((x,i)=>{const tot=x.ghs+x.errGhs,e=
  return `<div class="card"><i class="accent" style="background:var(--cyan)"></i><h3>ASIC ${i+1}${x.ownSensor?'':'<span class="tag" title="One board sensor shared by several chips">shared<span class="long"> sensor</span></span>'}${x.score?`<span class="tag" title="Silicon quality score (1-100) and efficiency at lock">Score ${x.score}${x.jth?` · ${x.jth.toFixed(1)} J/TH`:''}</span>`:''}</h3>
  <div class="big">${x.ghs.toFixed(0)}<small>GH/s</small></div><div class="sub"><span style="color:${tc}">${x.ownSensor?'':'~'}${x.temp.toFixed(0)}°C</span> · err ${e.toFixed(2)}%${x.mhz?` · <b style="color:${x.mhz>S.freq?'var(--cyan)':'inherit'}" title="${x.mhz>S.freq?'Raised '+(x.mhz-S.freq)+' MHz above the chain clock by the per-chip tuner':'At the chain clock'}">${x.mhz} MHz</b>`:''}</div>
  <div class="bar"><i style="width:${pct(x.ghs,per)};background:var(--cyan)"></i></div></div>`}).join('')}
-function blocks(m){
+let mpSig='',wxSig='',tmSig='';
+function blocks(m){const sig=JSON.stringify(m);if(sig==mpSig)return;mpSig=sig;
  if(!m.valid){$('cubes').innerHTML=`<span class="meta">${esc(m.error||'Loading mempool…')}</span>`;return}
  const nx=m.next.slice(0,3).reverse().map((b,i)=>`<div class="cube"><div class="t">${['~30 min','~20 min','next ~10 min'][i+3-Math.min(3,m.next.length)]}</div><div class="f" style="background:${ember()?`linear-gradient(to right,${mpCol(b.min)},${mpCol(b.fee)},${mpCol(b.max)})`:`linear-gradient(${feeCol(b.fee)},${feeCol(b.fee)}aa)`}">
   <div><b>~${b.fee.toFixed(0)}</b> sat/vB</div><div>${b.min.toFixed(0)}–${b.max.toFixed(0)} sat/vB</div><div>${b.txs.toLocaleString()} txs</div></div></div>`).join('');
@@ -766,13 +767,13 @@ async function tick(){try{S=await (await fetch('/api/status')).json()}catch(e){r
  $('tbar').style.width=(t.phase=='locked'||t.phase=='manual'?100:t.progress)+'%';
  $('tbest').textContent=t.bestFreq?`${t.bestFreq} MHz @ ${t.bestMv} mV (${hr(t.bestGhs).join(' ')})`:'searching…';$('tsteps').textContent=t.steps;
  // template + hash
- const tm=S.template;if(tm.valid){$('nmh').textContent=tm.height.toLocaleString();
+ const tm=S.template;if(tm.valid){const tsig=tm.height+':'+tm.pool+':'+tm.prevHash;if(tsig!=tmSig){tmSig=tsig;$('nmh').textContent=tm.height.toLocaleString();
   $('nmpool').textContent='pool '+(tm.pool+1)+' · '+(S.pools[tm.pool]?.host||'');$('nmrew').textContent=tm.reward.toFixed(8)+' BTC';
   $('nmtx').textContent='~'+(2**tm.branches).toLocaleString()+' (merkle depth '+tm.branches+')';$('nmprev').textContent=tm.prevHash;
   $('nmpay').innerHTML=payHtml(tm);
   $('lhht').textContent=tm.height.toLocaleString();$('lhnd').textContent=sfx(S.pool.networkDiff);
   const sig=tm.scriptSig||'';$('lhsig').textContent=sig.replace(/../g,b=>{const c=parseInt(b,16);return c>=32&&c<127?String.fromCharCode(c):'.'})||'--';$('lhsig').title=sig;
-  $('nmouts').innerHTML=(tm.outputs||[]).map(o=>`<div><span title="${esc(o.addr)}">${o.yours?'<b>you</b> · ':''}${esc(shortAddr(o.addr)||'non-standard script')}</span><span>${(o.sats/1e8).toFixed(8)} BTC</span></div>`).join('')}
+  $('nmouts').innerHTML=(tm.outputs||[]).map(o=>`<div><span title="${esc(o.addr)}">${o.yours?'<b>you</b> · ':''}${esc(shortAddr(o.addr)||'non-standard script')}</span><span>${(o.sats/1e8).toFixed(8)} BTC</span></div>`).join('')}}
  if(S.lastHash){$('lh').innerHTML=hashHtml(S.lastHash);$('lhd').textContent='diff '+sfx(S.lastHashDiff);
   $('lhn').textContent=(S.lastHash.match(/^0*/)[0].length)+' leading zeros · '+S.hashesChecked.toLocaleString()+' shares verified on the ESP32'}
  // pools mini list
@@ -783,10 +784,10 @@ async function tick(){try{S=await (await fetch('/api/status')).json()}catch(e){r
  $('pbest').textContent=sfx(S.pool.bestDiff);$('pbests').textContent=sfx(S.pool.sessionBest);$('pblk').textContent=S.pool.blocks;
  const N=S.net||{};$('pnet').innerHTML=N.rttMs?`<b>${N.rttMs.toFixed(0)}</b> ms`+(N.lossPct?` · <b style="color:var(--${N.lossPct>=10?'red':'orange'})">${N.lossPct.toFixed(0)}%</b> loss`:' · no loss'):(N.target?'no answer':'--');
  const ap=S.pools.find(p=>p.enabled&&p.connected&&p.pingMs);$('presp').innerHTML=ap?`<b>${ap.pingMs}</b> ms`+(S.pools.filter(p=>p.enabled).length>1?` <span class="meta">${esc(ap.host)}</span>`:''):'--';
- const w=S.weather;$('wxt').textContent=w.valid?w.temp.toFixed(0)+'°':'--';$('wxi').innerHTML=w.valid?wxIcon(w.code,w.isDay):'';
- $('wxd').innerHTML=w.valid?`L <b>${w.tmin.toFixed(0)}°</b> H <b>${w.tmax.toFixed(0)}°</b> · feels ${w.feels.toFixed(0)}° · ${w.humidity}% hum · ${w.wind.toFixed(0)} ${cfg.fahr?'mph':'km/h'}`:'';
- const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],d0=new Date().getDay();
- $('wxdays').innerHTML=w.valid&&w.days?w.days.map((d,i)=>`<div style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;background:var(--track)"><span style="width:28px;height:28px;flex:none">${wxIcon(d.code,true).replace('width="48" height="48"','width="28" height="28"')}</span><div><div class="meta">${i?DN[(d0+i)%7]:'Today'}</div><div><b>${d.tmax.toFixed(0)}°</b> <span class="meta">${d.tmin.toFixed(0)}°</span></div></div></div>`).join(''):'';$('wxc').textContent=w.valid?w.text:'No weather';$('wxl').textContent=w.valid?w.city:w.error;
+ const w=S.weather,ws=JSON.stringify(w);if(ws!=wxSig){wxSig=ws;$('wxt').textContent=w.valid?w.temp.toFixed(0)+'°':'--';$('wxi').innerHTML=w.valid?wxIcon(w.code,w.isDay):'';
+  $('wxd').innerHTML=w.valid?`L <b>${w.tmin.toFixed(0)}°</b> H <b>${w.tmax.toFixed(0)}°</b> · feels ${w.feels.toFixed(0)}° · ${w.humidity}% hum · ${w.wind.toFixed(0)} ${cfg.fahr?'mph':'km/h'}`:'';
+  const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],d0=new Date().getDay();
+  $('wxdays').innerHTML=w.valid&&w.days?w.days.map((d,i)=>`<div style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;background:var(--track)"><span style="width:28px;height:28px;flex:none">${wxIcon(d.code,true).replace('width="48" height="48"','width="28" height="28"')}</span><div><div class="meta">${i?DN[(d0+i)%7]:'Today'}</div><div><b>${d.tmax.toFixed(0)}°</b> <span class="meta">${d.tmin.toFixed(0)}°</span></div></div></div>`).join(''):'';$('wxc').textContent=w.valid?w.text:'No weather';$('wxl').textContent=w.valid?w.city:w.error};
  $('kup').textContent=dur(S.uptime);$('krssi').innerHTML=S.rssi?wifiSig(S.rssi):S.eth?.up?'Ethernet':'--';$('kboard').textContent=S.board||'--';$('kver').textContent=S.version;updShow(S);{const w=S.watchdog||{};$('kwd').textContent=(w.chain||w.pool)?`${w.chain} chip restart${w.chain==1?'':'s'}, ${w.pool} pool reconnect${w.pool==1?'':'s'}${w.last?' · '+w.last:''}`:'quiet';}
  $('nip').textContent=S.ip||'--';$('ethrow').style.display=$('ethnote').style.display=S.eth?.present?'':'none';$('neth').textContent=S.eth?.up?'connected · '+S.eth.ip:'adapter fitted, no cable';$('hostin').placeholder=S.hostname?S.hostname+' (automatic)':'automatic';$('nrssi').innerHTML=S.rssi?wifiSig(S.rssi):'--';$('npmf').textContent=S.pmf===undefined?'--':S.pmf?'yes (802.11w)':'no, the router doesn\'t offer them';
  $('sboard').textContent=S.board||'--';$('sver').textContent='AxeForge '+S.version+(S.gitSha?' ('+S.gitSha+')':'')+(S.buildTime?' · '+S.buildTime:'');$('schips').textContent=S.chipsDetected+' × '+(S.asicModel||'BM1370');$('svin').textContent=S.vin.toFixed(2)+' V';

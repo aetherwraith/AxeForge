@@ -12,6 +12,7 @@
 #include "freertos/idf_additions.h"
 #include "freertos/task.h"
 
+#include "core/json_util.h"
 #include "core/settings.h"
 #include "core/state.h"
 #include "net/http_util.h"
@@ -51,11 +52,7 @@ static void url_encode(const char *in, char *out, size_t len)
     out[o] = 0;
 }
 
-static double num(cJSON *obj, const char *key)
-{
-    cJSON *v = cJSON_GetObjectItem(obj, key);
-    return cJSON_IsNumber(v) ? v->valuedouble : 0;
-}
+static inline double num(cJSON *obj, const char *key) { return json_num(obj, key); }
 
 static bool geocode(Settings &cfg)
 {

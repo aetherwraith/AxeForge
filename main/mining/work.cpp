@@ -151,17 +151,36 @@ void build(const StratumJob &sj, const char *extranonce1, uint32_t en2, int en2_
     w.extranonce2[en2_len * 2] = 0;
 
     // coinbase = coinb1 + en1 + en2 + coinb2
-    size_t l1 = strlen(sj.coinb1), le1 = strlen(extranonce1), le2 = strlen(w.extranonce2), l2 = strlen(sj.coinb2);
-    size_t bin_len = (l1 + le1 + le2 + l2) / 2;
+    // Cache decoded coinb1+en1 and coinb2 across calls for the same StratumJob.
+    static char s_c_job[65] = "", s_c_en1[67] = "";
+    static uint8_t *s_c_pre = nullptr, *s_c_post = nullptr;
+    static size_t s_c_pre_len = 0, s_c_post_len = 0;
+    if (strcmp(s_c_job, sj.job_id) != 0 || strcmp(s_c_en1, extranonce1) != 0) {
+        free(s_c_pre);
+        free(s_c_post);
+        size_t l1 = strlen(sj.coinb1), le1 = strlen(extranonce1), l2 = strlen(sj.coinb2);
+        s_c_pre_len = (l1 + le1) / 2;
+        s_c_post_len = l2 / 2;
+        s_c_pre = s_c_pre_len ? (uint8_t *) malloc(s_c_pre_len) : nullptr;
+        s_c_post = s_c_post_len ? (uint8_t *) malloc(s_c_post_len) : nullptr;
+        if (s_c_pre) {
+            size_t p = hex2bin(sj.coinb1, s_c_pre, s_c_pre_len);
+            p += hex2bin(extranonce1, s_c_pre + p, s_c_pre_len - p);
+            s_c_pre_len = p;
+        }
+        if (s_c_post) s_c_post_len = hex2bin(sj.coinb2, s_c_post, s_c_post_len);
+        snprintf(s_c_job, sizeof(s_c_job), "%s", sj.job_id);
+        snprintf(s_c_en1, sizeof(s_c_en1), "%s", extranonce1);
+    }
+    size_t le2 = strlen(w.extranonce2) / 2;
+    size_t bin_len = s_c_pre_len + le2 + s_c_post_len;
     uint8_t cb_stack[512];
     uint8_t *cb_heap = bin_len > sizeof(cb_stack) ? (uint8_t *) malloc(bin_len) : nullptr;
     uint8_t *cb = cb_heap ? cb_heap : cb_stack;
-    size_t cap = cb_heap ? bin_len : sizeof(cb_stack);
     size_t o = 0;
-    o += hex2bin(sj.coinb1, cb + o, cap - o);
-    o += hex2bin(extranonce1, cb + o, cap - o);
-    o += hex2bin(w.extranonce2, cb + o, cap - o);
-    o += hex2bin(sj.coinb2, cb + o, cap - o);
+    if (s_c_pre && s_c_pre_len) { memcpy(cb + o, s_c_pre, s_c_pre_len); o += s_c_pre_len; }
+    o += hex2bin(w.extranonce2, cb + o, bin_len - o);
+    if (s_c_post && s_c_post_len) { memcpy(cb + o, s_c_post, s_c_post_len); o += s_c_post_len; }
 
     uint8_t pair[64];
     dsha256(cb, o, pair);

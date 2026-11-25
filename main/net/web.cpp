@@ -488,20 +488,34 @@ static esp_err_t status_get(httpd_req_t *req)
 
 static esp_err_t history_get(httpd_req_t *req)
 {
-    // Same shape as /api/stats, so the dashboard draws both ranges with one function:
-    // {"step":30,"hashrate":[...],"temp":[...],"power":[...]}, oldest first.
-    cJSON *r = cJSON_CreateObject();
-    cJSON_AddNumberToObject(r, "step", 30);
-    cJSON *hr = cJSON_AddArrayToObject(r, "hashrate");
-    cJSON *t = cJSON_AddArrayToObject(r, "temp");
-    cJSON *p = cJSON_AddArrayToObject(r, "power");
+    const size_t cap = 4096;
+    char *b = (char *) heap_caps_malloc(cap, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!b) b = (char *) malloc(cap);
+    if (!b) return httpd_resp_send_500(req);
+    size_t n = 0;
+#define HADD(...) n += snprintf(b + n, n < cap ? cap - n : 0, __VA_ARGS__)
+    HADD("{\"step\":30,\"hashrate\":[");
     for (int i = 0; i < AF_HISTORY_LEN; i++) {
         int k = (g_state.history_head + i) % AF_HISTORY_LEN;
-        cJSON_AddItemToArray(hr, cJSON_CreateNumber((int) g_state.history[k]));
-        cJSON_AddItemToArray(t, cJSON_CreateNumber((int) (g_state.history_temp[k] * 10 + 0.5f) / 10.0));
-        cJSON_AddItemToArray(p, cJSON_CreateNumber((int) (g_state.history_power[k] * 10 + 0.5f) / 10.0));
+        HADD("%s%d", i ? "," : "", (int) g_state.history[k]);
     }
-    return send_json(req, r);
+    HADD("],\"temp\":[");
+    for (int i = 0; i < AF_HISTORY_LEN; i++) {
+        int k = (g_state.history_head + i) % AF_HISTORY_LEN;
+        HADD("%s%.1f", i ? "," : "", g_state.history_temp[k]);
+    }
+    HADD("],\"power\":[");
+    for (int i = 0; i < AF_HISTORY_LEN; i++) {
+        int k = (g_state.history_head + i) % AF_HISTORY_LEN;
+        HADD("%s%.1f", i ? "," : "", g_state.history_power[k]);
+    }
+    HADD("]}");
+#undef HADD
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    esp_err_t r = httpd_resp_send(req, b, n < cap ? n : cap - 1);
+    free(b);
+    return r;
 }
 
 static esp_err_t settings_get(httpd_req_t *req)

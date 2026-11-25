@@ -134,17 +134,6 @@ static char *dup_str(const char *s)
     return d;
 }
 
-static void json_escape(const char *in, char *out, size_t cap)
-{
-    if (cap == 0) return;
-    size_t o = 0;
-    for (; *in && o + 2 < cap; in++) {
-        if (*in == '"' || *in == '\\') out[o++] = '\\';
-        out[o++] = *in;
-    }
-    out[o] = 0;
-}
-
 static void swap_words(const uint8_t *in, uint8_t *out)
 {
     for (int i = 0; i < 32; i += 4) {
