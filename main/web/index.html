@@ -458,6 +458,7 @@ hashrate as one chip per pool — or uses them as failover.</div>
 <p class="note">Changing the screen reboots the miner. If the screen stays blank after switching, hold the bottom button while powering on to flip back.</p></div>
 <label title="Gauges draw each value on a half arc with the firmware's limits as tick marks. Bars is the compact row with a thin bar under the number.">Dashboard tiles</label><select name="tiles"><option value="0">Bars, compact</option><option value="1">Gauges, with the limits as ticks</option></select>
 <label title="Forge is dark, Paper is for daylight and e-ink-like screens, Ember is dark with Bitcoin orange, DTV is the DTV Electronics look from AxeMobile, on AMOLED black with a live black hole. Applies to the miner&#x27;s screen and this page.">Theme (screen and web)</label><select name="theme"><option value="0">Forge: dark neon</option><option value="1">Paper: minimal, e-ink style</option><option value="2">Ember: dark, Bitcoin orange</option><option value="3">DTV: First Supporter</option></select>
+<div class="switch" style="margin-top:8px"><div><b>Auto day/night theme</b><span>Uses Paper (light) 07:00–19:00 and your selected dark theme at night.</span></div><input class="tg" type="checkbox" name="autoTheme"></div>
 <label title="Backlight level. Applies at once.">Brightness <span class="rv" id="bv"></span></label><input type="range" name="bright" min="5" max="100" oninput="bv.textContent=this.value+'%'">
 <div><label title="Screen/backlight off after this many idle minutes. A button wakes it; faults, overheating and a found block wake it too.">Screen off after</label><select name="scroff"><option value="0">Never</option><option value="1">1 minute idle</option><option value="5">5 minutes idle</option><option value="15">15 minutes idle</option><option value="30">30 minutes idle</option><option value="60">1 hour idle</option></select></div>
 <div class="row"><div class="lcd"><label title="The screen page shown after boot.">Start page</label><select name="defpage" id="defpage"></select></div>
@@ -834,7 +835,8 @@ function swBulkOta(){const f=$('swotabin').files[0];if(!f)return toast('Choose a
  x.onload=()=>{toast(x.responseText);loadSwarm()};x.onerror=()=>toast('Upload failed');
  x.open('POST','/api/swarm/ota');x.setRequestHeader('X-AxeForge','1');if(SESS)x.setRequestHeader('X-AxeForge-Session',SESS);x.send(f)}
 setInterval(()=>{if(cur=='swarm'&&!document.hidden)loadSwarm()},5000);
-async function loadCfg(){cfg=await (await fetch('/api/settings')).json();setTheme(cfg.theme);
+function applyThemeCfg(){const h=new Date().getHours();setTheme(cfg.autoTheme?(h>=7&&h<19?1:(cfg.theme==1?0:cfg.theme)):cfg.theme)}
+async function loadCfg(){cfg=await (await fetch('/api/settings')).json();applyThemeCfg();
  // the board's limits go on the sliders first: a range input can't hold a value
  // outside its min/max, and saving the form would send the clamped one (#89)
  const L=cfg.limits,fr=document.querySelector('[name=freq]'),mv=document.querySelector('[name=mv]');

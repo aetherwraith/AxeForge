@@ -423,6 +423,12 @@ static void display_task(void *)
             }
             lv_obj_invalidate(lv_scr_act());
         }
+        static theme::Id s_last_theme = theme::current();
+        theme::Id cur_theme = theme::current();
+        if (cur_theme != s_last_theme) {
+            s_last_theme = cur_theme;
+            s_rebuild_req = true;
+        }
         if (s_rebuild_req) {
             // theme change: every colour was mapped when the widgets were built,
             // so drop them all and build again under the new palette

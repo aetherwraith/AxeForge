@@ -81,6 +81,16 @@ bool night_active()
     return s < e ? (h >= s && h < e) : (h >= s || h < e);
 }
 
+uint8_t active_theme()
+{
+    if (!s_settings.auto_theme || !g_state.time_synced) return s_settings.theme;
+    time_t now = time(NULL);
+    struct tm t;
+    localtime_r(&now, &t);
+    if (t.tm_hour >= 7 && t.tm_hour < 19) return 1;  // Paper
+    return s_settings.theme == 1 ? 0 : s_settings.theme;
+}
+
 void pool_user(int pool, char *out, size_t len)
 {
     if (!len) return;
@@ -261,6 +271,7 @@ void load()
     get_u8(h, "fman0", s.fan_manual[0]);
     get_u8(h, "fman1", s.fan_manual[1]);
     get_u8(h, "theme", s.theme);
+    get_bool(h, "autothm", s.auto_theme);
     get_u8(h, "tiles", s.tiles);
     get_u8(h, "bright", s.brightness);
     get_u8(h, "scroff", s.screen_off_min);
@@ -383,6 +394,7 @@ void save()
     nvs_set_u8(h, "fman0", s.fan_manual[0]);
     nvs_set_u8(h, "fman1", s.fan_manual[1]);
     nvs_set_u8(h, "theme", s.theme);
+    nvs_set_u8(h, "autothm", s.auto_theme);
     nvs_set_u8(h, "tiles", s.tiles);
     nvs_set_u8(h, "bright", s.brightness);
     nvs_set_u8(h, "scroff", s.screen_off_min);

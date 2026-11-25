@@ -61,6 +61,7 @@ struct Settings {
     uint8_t fan_manual[2] = {60, 60};
     uint8_t tiles = 0;             // dashboard telemetry cards: 0 = bars (as before), 1 = gauges
     uint8_t theme = 0;             // 0 = Forge (dark neon), 1 = Paper (e-ink style), 2 = Ember (Bitcoin orange), 3 = DTV (DTV Electronics, First Supporter)
+    bool auto_theme = false;       // Paper 07:00-19:00, dark theme at night
     uint8_t brightness = 100;
     uint8_t screen_off_min = 0;   // backlight off after this many idle minutes, 0 = never
 
@@ -152,6 +153,7 @@ void save_later();
 void flush();  // the monitor: a pending save_later()
 Settings &get();
 bool night_active();
+uint8_t active_theme();
 // pools are stored as one JSON blob
 char *pools_to_json();  // caller frees
 void pools_from_json(const char *json);

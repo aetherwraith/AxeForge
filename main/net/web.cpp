@@ -550,6 +550,7 @@ static esp_err_t settings_get(httpd_req_t *req)
     cJSON_AddNumberToObject(r, "fman0", c.fan_manual[0]);
     cJSON_AddNumberToObject(r, "fman1", c.fan_manual[1]);
     cJSON_AddNumberToObject(r, "theme", c.theme);
+    cJSON_AddBoolToObject(r, "autoTheme", c.auto_theme);
     cJSON_AddNumberToObject(r, "tiles", c.tiles);
     cJSON_AddNumberToObject(r, "bright", c.brightness);
     cJSON_AddNumberToObject(r, "scroff", c.screen_off_min);
@@ -789,8 +790,10 @@ static esp_err_t settings_post(httpd_req_t *req)
     c.fan_manual[1] = (uint8_t) get_int(j, "fman1", c.fan_manual[1], 20, 100);
     c.tiles = (uint8_t) get_int(j, "tiles", c.tiles, 0, 1);
     uint8_t theme = (uint8_t) get_int(j, "theme", c.theme, 0, 3);
-    if (theme != c.theme) {
+    bool auto_thm = get_bool(j, "autoTheme", c.auto_theme);
+    if (theme != c.theme || auto_thm != c.auto_theme) {
         c.theme = theme;
+        c.auto_theme = auto_thm;
         display::rebuild_ui();  // the screen UI is built with the theme's palette
     }
 

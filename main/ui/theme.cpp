@@ -111,7 +111,7 @@ uint32_t mempool_fee_rgb(float fee)
 // than rebooting, so every colour lookup during the rebuild must see the new one.
 Id current()
 {
-    uint8_t s = settings::get().theme;
+    uint8_t s = settings::active_theme();
     return s == PAPER ? PAPER : s == EMBER ? EMBER : s == DTV ? DTV : FORGE;
 }
 

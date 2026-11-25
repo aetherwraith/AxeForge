@@ -68,6 +68,7 @@ components:
         fman0: {type: integer, description: 'fan 1 manual speed, %'}
         fman1: {type: integer, description: 'fan 2 manual speed, %'}
         theme: {type: integer, description: '0 Forge, 1 Paper, 2 Ember, 3 Spatial; reboots'}
+        autoTheme: {type: boolean, description: automatically use Paper 07:00-19:00 and dark theme at night}
         tiles: {type: integer, description: 'dashboard cards: 0 bars, 1 gauges'}
         bright: {type: integer, description: 'screen brightness, %'}
         scroff: {type: integer}
