@@ -262,7 +262,9 @@ html[data-scr=oled] .lcd{display:none!important}html:not([data-scr=oled]) .oled{
   <text x="110" y="196" text-anchor="middle" class="s" id="hrs"></text></svg></div>
  <div class="card"><h3><span id="ctitle">Hashrate · last hour</span><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
   <span class="seg xs" id="metseg"><button data-m="hashrate" class="on">Hashrate</button><button data-m="temp">Temp</button><button data-m="power">Power</button></span>
-  <span class="seg xs" id="rangeseg"><button data-r="hour" class="on">1 h</button><button data-r="day">24 h</button></span></span></h3>
+  <span class="seg xs" id="rangeseg"><button data-r="hour" class="on">1 h</button><button data-r="day">24 h</button></span>
+  <button class="btn alt sm" style="padding:3px 7px;font-size:11px" onclick="exportChart('csv')" title="Download CSV">CSV</button>
+  <button class="btn alt sm" style="padding:3px 7px;font-size:11px" onclick="exportChart('json')" title="Download JSON">JSON</button></span></h3>
   <svg class="chart" id="chart" preserveAspectRatio="none"></svg><p class="note" style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span id="cnote"></span><span class="tag" id="eff">--</span></p></div>
 </div>
 <div class="grid g4 mb" id="tele">
@@ -1039,6 +1041,11 @@ const cSeg=(id,attr,set)=>document.querySelectorAll('#'+id+' button').forEach(b=
 cSeg('metseg','m',v=>cMetric=v);cSeg('rangeseg','r',v=>cRange=v);
 async function chart(){try{HOUR=await (await fetch('/api/history')).json()}catch(e){return}if(cRange=='hour')drawChart()}
 async function loadDay(){try{DAY=await (await fetch('/api/stats')).json()}catch(e){return}if(cRange=='day')drawChart()}
+async function exportChart(fmt){const D=cRange=='hour'?(HOUR||await (await fetch('/api/history')).json()):(DAY||await (await fetch('/api/stats')).json());
+ const step=D.step||30,hrA=D.hashrate||[],tA=D.temp||[],pA=D.power||[],n=hrA.length;
+ const body=fmt=='json'?JSON.stringify(D,null,1):'index,seconds_ago,hashrate_ghs,temp_c,power_w\n'+hrA.map((v,i)=>`${i},${(n-1-i)*step},${v},${tA[i]??''},${pA[i]??''}`).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([body],{type:fmt=='json'?'application/json':'text/csv'}));
+ a.download=`axeforge-telemetry-${cRange=='hour'?'1h':'24h'}.${fmt}`;a.click()}
 const cFmt=x=>cMetric=='hashrate'?hr(x).join(' '):cMetric=='temp'?x.toFixed(1)+' °C':x.toFixed(1)+' W';
 const cAgo=s=>s<30?'now':s<3600?`${Math.round(s/60)} min ago`:`${Math.floor(s/3600)} h ${Math.round(s%3600/60)} min ago`;
 function drawChart(){const c=$('chart'),D=cRange=='hour'?HOUR:DAY,v=D&&D[cMetric]||[],step=D?D.step:30,W=c.clientWidth||600,H=c.clientHeight||150;

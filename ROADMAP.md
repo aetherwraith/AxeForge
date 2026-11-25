@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-16. **24h Telemetry CSV / JSON Export**
-    - Allow downloading the 24-hour hashrate, chip temperature, and power history buffer as CSV from *Dashboard* for offline graphing or comparing cooling mods.
-
 17. **Swarm-Aggregated Prometheus Metrics (`/metrics`)**
     - Extend `/metrics` with an optional `?swarm=1` query so a single Prometheus/Grafana scrape target can collect metrics for the entire miner fleet.
 
