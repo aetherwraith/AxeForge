@@ -372,17 +372,43 @@ static bool trim(uint16_t f, uint16_t &mv, float &ghs)
 // What one chip should hash at the chain clock plus its offset.
 static float chip_expected_ghs(uint16_t f, int off) { return (held(f) + off) * (float) asic::SMALL_CORES / 1000.0f; }
 
-// Takes one raised chip down a step (watch phase), keeping the chain where it is.
-static void lower_chip(int chip, const char *why)
+// Takes one chip down a step (watch phase), keeping the chain where it is.
+static void lower_chip(int chip, const char *why, int min_off = 0)
 {
     Settings &cfg = settings::get();
     int8_t off[AF_NUM_ASICS];
     memcpy(off, cfg.chip_off, sizeof(off));
-    off[chip] = off[chip] > CHIP_STEP ? off[chip] - CHIP_STEP : 0;
+    int next = off[chip] - CHIP_STEP;
+    off[chip] = (int8_t) (next < min_off ? min_off : next);
     set_offsets(off);
     settings::save();
-    snprintf(g_state.tuner.note, sizeof(g_state.tuner.note), "%s: chip %d back to +%d MHz", why, chip + 1, off[chip]);
+    snprintf(g_state.tuner.note, sizeof(g_state.tuner.note), "%s: chip %d to %+d MHz", why, chip + 1, off[chip]);
     ESP_LOGW(TAG, "%s", g_state.tuner.note);
+}
+
+// Hottest chip on a multi-chip board with per-chip die sensors that can be derated
+// on its own instead of throttling the whole chain, or -1.
+static int hot_chip_to_derate(uint16_t f)
+{
+    const Settings &cfg = settings::get();
+    const int n = g_state.chips_detected < AF_NUM_ASICS ? g_state.chips_detected : AF_NUM_ASICS;
+    if (!asic::PER_CHIP_CLOCK || board::is_rev7() || n < 2 || g_state.vr_temp > vr_ceiling()) return -1;
+    int hc = -1;
+    float tmax = -999.0f, tmin = 999.0f;
+    for (int i = 0; i < n; i++) {
+        if (!g_state.chip_temp_own[i]) continue;
+        float t = g_state.chip_temp[i];
+        if (t > tmax) {
+            tmax = t;
+            hc = i;
+        }
+        if (t < tmin) tmin = t;
+    }
+    if (hc < 0) return -1;
+    if (tmax - tmin < 2.0f && cfg.chip_off[hc] <= 0) return -1;
+    int next_off = cfg.chip_off[hc] - CHIP_STEP;
+    if (next_off < -48 || held(f) + next_off < AF_MIN_FREQ_MHZ) return -1;
+    return hc;
 }
 
 // A raised chip hashing below MIN_EFFICIENCY of its own clock over the last window, or -1.
@@ -598,6 +624,13 @@ static void tuner_task(void *)
             if (r.verdict == Verdict::Errors && wc >= 0 && wc < AF_NUM_ASICS && cfg.chip_off[wc] > 0) {
                 lower_chip(wc, "Drift");  // a raised chip is the likely cause: not the chain
                 continue;
+            }
+            if (r.verdict == Verdict::Thermal) {
+                int hc = hot_chip_to_derate(best_f);
+                if (hc >= 0) {
+                    lower_chip(hc, "Hot", -48);
+                    continue;
+                }
             }
             g_state.tuner.phase = TunerPhase::Backoff;
             if (climbed || r.verdict == Verdict::Thermal) wall(verdict_wall(r.verdict), best_f, best_mv, true);  // the lock itself failed: that is the wall now

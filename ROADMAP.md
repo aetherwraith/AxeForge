@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-1. **Per-Chip Thermal Derating (Die-Temp Guardrail)**
-   - On multi-chip boards with per-chip die temperature sensors (NerdQX, NerdOctaxe-γ), proactively step down only the hottest chip when a single die approaches `AF_MAX_CHIP_TEMP`, preserving chain-wide hashrate instead of throttling all chips together.
-
 2. **Silicon Quality / Binning Fingerprint ("Chip Score")**
    - Record each chip's measured `MHz / mV / W / err%` summary during auto-tune (climb, trim, and per-chip clock steps) and surface a per-chip silicon score and efficiency summary on the *ASIC chips* web tab to help spot weak paste/cooling or compare boards.
 
