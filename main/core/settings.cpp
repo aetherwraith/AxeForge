@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "cJSON.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -67,6 +68,18 @@ static void copy_json_str(cJSON *o, const char *key, char *dst, size_t len)
 namespace settings {
 
 Settings &get() { return s_settings; }
+
+bool night_active()
+{
+    if (!s_settings.sched_on || !g_state.time_synced) return false;
+    uint8_t s = s_settings.sched_start_h, e = s_settings.sched_end_h;
+    if (s == e) return false;
+    time_t now = time(NULL);
+    struct tm t;
+    localtime_r(&now, &t);
+    int h = t.tm_hour;
+    return s < e ? (h >= s && h < e) : (h >= s || h < e);
+}
 
 void pool_user(int pool, char *out, size_t len)
 {
@@ -287,6 +300,11 @@ void load()
     get_str(h, "mqtturl", s.mqtt_url, sizeof(s.mqtt_url));
     get_str(h, "mqttuser", s.mqtt_user, sizeof(s.mqtt_user));
     get_str(h, "mqttpass", s.mqtt_pass, sizeof(s.mqtt_pass));
+    get_bool(h, "schedon", s.sched_on);
+    get_u8(h, "schedsh", s.sched_start_h);
+    get_u8(h, "schedend", s.sched_end_h);
+    get_u16(h, "schedw", s.sched_power_w);
+    get_u8(h, "schedfan", s.sched_fan_max);
     uint8_t nev_fixed = 0;
     nvs_get_u8(h, "nevfix", &nev_fixed);
     nvs_close(h);
@@ -395,6 +413,11 @@ void save()
     nvs_set_str(h, "mqtturl", s.mqtt_url);
     nvs_set_str(h, "mqttuser", s.mqtt_user);
     nvs_set_str(h, "mqttpass", s.mqtt_pass);
+    nvs_set_u8(h, "schedon", s.sched_on);
+    nvs_set_u8(h, "schedsh", s.sched_start_h);
+    nvs_set_u8(h, "schedend", s.sched_end_h);
+    nvs_set_u16(h, "schedw", s.sched_power_w);
+    nvs_set_u8(h, "schedfan", s.sched_fan_max);
     nvs_commit(h);
     nvs_close(h);
 }

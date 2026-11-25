@@ -120,7 +120,8 @@ static float power_ceiling()
 {
     const Settings &cfg = settings::get();
     float lim = gates::max_power();
-    if (cfg.tune_goal == GOAL_POWER_CAP && cfg.power_cap_w > 0 && cfg.power_cap_w < lim) return cfg.power_cap_w;
+    if (cfg.tune_goal == GOAL_POWER_CAP && cfg.power_cap_w > 0 && cfg.power_cap_w < lim) lim = cfg.power_cap_w;
+    if (settings::night_active() && cfg.sched_power_w > 0 && cfg.sched_power_w < lim) lim = cfg.sched_power_w;
     return lim;
 }
 

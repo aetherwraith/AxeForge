@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-5. **Day/Night & Time-of-Day Scheduling**
-   - Local time-of-day profiles (e.g., quiet/low-power mode overnight with capped fan or power limit, full performance during the day) alongside existing electricity-price cutoffs.
-
 8. **Swarm Bulk OTA & Settings Sync**
    - Push a firmware `.bin` or sync pool/theme/display settings across all AxeForge miners on the Swarm tab in one click.
 

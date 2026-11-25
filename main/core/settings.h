@@ -121,6 +121,13 @@ struct Settings {
     char mqtt_url[96] = "";
     char mqtt_user[48] = "";
     char mqtt_pass[48] = "";
+
+    // Day/night schedule (local NTP time)
+    bool sched_on = false;
+    uint8_t sched_start_h = 22;
+    uint8_t sched_end_h = 7;
+    uint16_t sched_power_w = 0;    // 0 = pause mining overnight, >0 = night power cap (W)
+    uint8_t sched_fan_max = 0;     // 0 = no cap, else max fan % overnight
 };
 
 // notify_events bits
@@ -139,6 +146,7 @@ void save();
 void save_later();
 void flush();  // the monitor: a pending save_later()
 Settings &get();
+bool night_active();
 // pools are stored as one JSON blob
 char *pools_to_json();  // caller frees
 void pools_from_json(const char *json);

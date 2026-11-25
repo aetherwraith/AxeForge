@@ -558,6 +558,11 @@ static esp_err_t settings_get(httpd_req_t *req)
     cJSON_AddStringToObject(r, "mqtturl", c.mqtt_url);
     cJSON_AddStringToObject(r, "mqttuser", c.mqtt_user);
     cJSON_AddBoolToObject(r, "mqttpassSet", c.mqtt_pass[0] != 0);
+    cJSON_AddBoolToObject(r, "schedon", c.sched_on);
+    cJSON_AddNumberToObject(r, "schedsh", c.sched_start_h);
+    cJSON_AddNumberToObject(r, "schedend", c.sched_end_h);
+    cJSON_AddNumberToObject(r, "schedw", c.sched_power_w);
+    cJSON_AddNumberToObject(r, "schedfan", c.sched_fan_max);
     cJSON *lim = cJSON_AddObjectToObject(r, "limits");
     cJSON_AddNumberToObject(lim, "minFreq", AF_MIN_FREQ_MHZ);
     cJSON_AddNumberToObject(lim, "maxFreq", gates::max_freq());
@@ -848,6 +853,11 @@ static esp_err_t settings_post(httpd_req_t *req)
         mqtt_changed |= copy_str(j, "mqttpass", c.mqtt_pass, sizeof(c.mqtt_pass));
     }
     if (mqtt_changed) mqtt_ha::reconfigure();
+    c.sched_on = get_bool(j, "schedon", c.sched_on);
+    c.sched_start_h = (uint8_t) get_int(j, "schedsh", c.sched_start_h, 0, 23);
+    c.sched_end_h = (uint8_t) get_int(j, "schedend", c.sched_end_h, 0, 23);
+    c.sched_power_w = (uint16_t) get_int(j, "schedw", c.sched_power_w, 0, 2000);
+    c.sched_fan_max = (uint8_t) get_int(j, "schedfan", c.sched_fan_max, 0, 100);
 
     // electricity price
     c.price_on = get_bool(j, "priceon", c.price_on);

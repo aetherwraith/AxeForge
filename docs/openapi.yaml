@@ -90,6 +90,11 @@ components:
         mqtton: {type: boolean}
         mqtturl: {type: string}
         mqttuser: {type: string}
+        schedon: {type: boolean}
+        schedsh: {type: integer, description: 'night start hour (0-23)'}
+        schedend: {type: integer, description: 'night end hour (0-23)'}
+        schedw: {type: integer, description: 'night power cap W (0 = pause mining)'}
+        schedfan: {type: integer, description: 'night max fan % (0 = uncapped)'}
   responses:
     Text:
       description: A short, human-readable result ("Saved.", "Rebooting...")
