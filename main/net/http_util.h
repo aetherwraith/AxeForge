@@ -9,4 +9,14 @@ char *get(const char *url, size_t max_len, int timeout_ms = 8000, bool quiet = f
 // POST with X-AxeForge: 1 header. Returns HTTP status code or -1 on error.
 int post(const char *url, const char *body, size_t len, const char *ctype = "application/json",
          int timeout_ms = 8000, bool quiet = false);
+// Keep-alive GET session for sequential requests to the same host.
+class Session {
+  public:
+    ~Session();
+    char *get(const char *url, size_t max_len, int timeout_ms = 8000, bool quiet = false);
+  private:
+    void *m_h = nullptr;
+};
+// Idempotent mDNS init + _http._tcp service registration.
+void ensure_mdns(const char *hostname);
 }

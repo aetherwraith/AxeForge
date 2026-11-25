@@ -21,6 +21,7 @@
 #include "core/state.h"
 #include "net/ble_setup.h"
 #include "net/eth.h"
+#include "net/http_util.h"
 
 // Not in a public header: ESP-IDF's own supplicant calls it to decide whether the
 // link has a management-frame key. Weak, so a later ESP-IDF without it still links
@@ -235,11 +236,7 @@ void start()
     pick_hostname();
     esp_netif_set_hostname(sta_netif, g_state.hostname);
     ESP_LOGI(TAG, "hostname %s", g_state.hostname);
-    if (mdns_init() == ESP_OK) {
-        mdns_hostname_set(g_state.hostname);
-        mdns_instance_name_set(g_state.hostname);
-        mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
-    }
+    http::ensure_mdns(g_state.hostname);
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     esp_wifi_init(&cfg);

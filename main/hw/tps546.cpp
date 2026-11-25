@@ -366,7 +366,6 @@ float vout()
 }
 
 float pout(float vout_val, float iout_val) { return vout_val * s_prof->domains * iout_val; }
-float pout() { return pout(vout(), iout()); }
 
 // Why the output went away: every status register in one line, for the log.
 void log_status(const char *why)

@@ -50,7 +50,6 @@ float temperature();  // regulator die, NAN on error
 float vin();
 float iout();
 float vout();  // per-domain core voltage
-float pout();
 float pout(float vout_val, float iout_val);
 
 // Logs every status register with the readings, before the output is cut.

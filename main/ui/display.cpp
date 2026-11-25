@@ -127,7 +127,17 @@ static void flush_cb(lv_disp_drv_t *drv, const lv_area_t *a, lv_color_t *px)
     // renders byte-swapped colors for SPI, so undo that here
     uint16_t *p = (uint16_t *) px;
     size_t n = (size_t) (a->x2 - a->x1 + 1) * (a->y2 - a->y1 + 1);
-    for (size_t i = 0; i < n; i++) p[i] = __builtin_bswap16(p[i]);
+    size_t i = 0;
+    if (((uintptr_t) p & 3) == 0) {
+        uint32_t *w = (uint32_t *) p;
+        size_t nw = n / 2;
+        for (size_t k = 0; k < nw; k++) {
+            uint32_t v = w[k];
+            w[k] = ((v & 0x00ff00ffu) << 8) | ((v & 0xff00ff00u) >> 8);
+        }
+        i = nw * 2;
+    }
+    for (; i < n; i++) p[i] = __builtin_bswap16(p[i]);
     }
 #endif
     esp_lcd_panel_draw_bitmap(s_panel, a->x1, a->y1, a->x2 + 1, a->y2 + 1, px);

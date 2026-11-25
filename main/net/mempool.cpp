@@ -24,11 +24,11 @@ static TaskHandle_t s_task;
 
 static inline double num(cJSON *o, const char *k) { return json_num(o, k); }
 
-static bool fetch_blocks(const char *base, MempoolState &m)
+static bool fetch_blocks(http::Session &hs, const char *base, MempoolState &m)
 {
     char url[128];
     snprintf(url, sizeof(url), "%s/api/v1/blocks", base);
-    char *body = http::get(url, BLOCKS_MAX);
+    char *body = hs.get(url, BLOCKS_MAX);
     if (!body) return false;
     cJSON *a = json_parse(body);
     free(body);
@@ -58,11 +58,11 @@ static bool fetch_blocks(const char *base, MempoolState &m)
     return true;
 }
 
-static bool fetch_projected(const char *base, MempoolState &m)
+static bool fetch_projected(http::Session &hs, const char *base, MempoolState &m)
 {
     char url[128];
     snprintf(url, sizeof(url), "%s/api/v1/fees/mempool-blocks", base);
-    char *body = http::get(url, 16 * 1024);
+    char *body = hs.get(url, 16 * 1024);
     if (!body) return false;
     cJSON *a = json_parse(body);
     free(body);
@@ -89,7 +89,7 @@ static bool fetch_projected(const char *base, MempoolState &m)
     cJSON_Delete(a);
 
     snprintf(url, sizeof(url), "%s/api/v1/fees/recommended", base);
-    body = http::get(url, 1024);
+    body = hs.get(url, 1024);
     if (body) {
         cJSON *f = json_parse(body);
         free(body);
@@ -115,9 +115,10 @@ static void mempool_task(void *)
             snprintf(g_state.mempool.error, sizeof(g_state.mempool.error), "Mempool feed disabled");
             wait = 3600;
         } else if (wifi::connected()) {
+            http::Session hs;
             next = g_state.mempool;
-            bool ok = fetch_blocks(cfg.mempool_url, next);
-            ok = fetch_projected(cfg.mempool_url, next) && ok;
+            bool ok = fetch_blocks(hs, cfg.mempool_url, next);
+            ok = fetch_projected(hs, cfg.mempool_url, next) && ok;
             if (ok) {
                 next.valid = true;
                 next.updated_s = g_state.uptime_s;
