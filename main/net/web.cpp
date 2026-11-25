@@ -352,6 +352,7 @@ static esp_err_t status_get(httpd_req_t *req)
         cJSON_AddNumberToObject(o, "payout", ps.payout);
         cJSON_AddNumberToObject(o, "payoutPct", ps.payout_pct);
         cJSON_AddBoolToObject(o, "payoutBlocked", ps.payout_blocked);
+        cJSON_AddBoolToObject(o, "demoted", ps.demote_until_s > s.uptime_s);
         cJSON_AddStringToObject(o, "status", ps.status);
         cJSON_AddItemToArray(pl, o);
     }

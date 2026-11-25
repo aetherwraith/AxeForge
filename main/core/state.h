@@ -95,6 +95,8 @@ struct PoolState {
     uint8_t payout = 0;          // Payout of this pool's latest template
     uint8_t payout_pct = 0;      // share of the coinbase paid to your address
     bool payout_blocked = false; // payout check enforced: this pool gets no work
+    uint8_t consec_rej = 0;      // consecutive rejected/stale shares
+    uint32_t demote_until_s = 0; // uptime_s until temporary failover demotion ends
     char status[48] = "";        // last error / state text
 };
 

@@ -141,6 +141,8 @@ static int pick_pool(PoolSlot *slots)
     }
     if (cfg.pool_mode == PoolMode::Failover) {
         for (int i = 0; i < AF_MAX_POOLS; i++)
+            if (ok[i] && g_state.pools[i].demote_until_s <= g_state.uptime_s) return i;
+        for (int i = 0; i < AF_MAX_POOLS; i++)
             if (ok[i]) return i;
         return -1;
     }

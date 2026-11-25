@@ -241,6 +241,8 @@ static void on_share_result(Pool &p, bool ok, const char *err)
     PoolState &ps = g_state.pools[p.idx];
     if (p.submit_t_us) ps.ping_ms = (uint32_t) ((esp_timer_get_time() - p.submit_t_us) / 1000);
     if (ok) {
+        ps.consec_rej = 0;
+        ps.demote_until_s = 0;
         ps.accepted++;
         g_state.shares_accepted++;
         ESP_LOGI(TAG, "[%d] share accepted", p.idx);
@@ -258,6 +260,12 @@ static void on_share_result(Pool &p, bool ok, const char *err)
     } else {
         ps.rejected++;
         g_state.shares_rejected++;
+        if (ps.consec_rej < 255) ps.consec_rej++;
+        if (ps.consec_rej >= 5 || ps.ping_ms >= 2000) {
+            ps.demote_until_s = g_state.uptime_s + 120;
+            ESP_LOGW(TAG, "[%d] demoting pool 120s (consec_rej=%u, ping=%lums)",
+                     p.idx, ps.consec_rej, (unsigned long) ps.ping_ms);
+        }
         ESP_LOGW(TAG, "[%d] share rejected: %s", p.idx, err ? err : "?");
     }
 }

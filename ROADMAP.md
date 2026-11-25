@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-10. **Latency & Stale-Share Aware Failover**
-    - Track pool submit latency (`ping_ms`) and consecutive rejected/stale shares to temporarily demote degraded pools in Failover mode.
-
 12. **Multi-Point Fan Curve**
     - Complement the single PI target (`fantgt`) with a 2–3 point fan curve (quiet floor + ramp slope) so desktop miners stay silent at low ambient temps and ramp smoothly before the 3 °C ceiling boost.
 
