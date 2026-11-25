@@ -475,6 +475,7 @@ paths:
                       discordSet: {type: boolean}
                       tgSet: {type: boolean}
                       mqttpassSet: {type: boolean}
+                      apiTokenSet: {type: boolean}
                       hasBap: {type: boolean, description: the board has the accessory port}
                       hasEth: {type: boolean, description: the build drives a W5500 Ethernet adapter}
                       limits:
@@ -523,6 +524,7 @@ paths:
                     wpass: {type: string, description: Wi-Fi password; empty leaves it unchanged; reboots}
                     discord: {type: string, description: Discord webhook URL}
                     tgtoken: {type: string, description: Telegram bot token}
+                    apiToken: {type: string, description: Read-only Bearer token for automation/monitoring}
                     mqttpass: {type: string, description: MQTT broker password (write-only)}
                     priceurl: {type: string, description: your own price URL (pricesrc 1)}
                     notifyClear: {type: boolean, description: clear the notification list}

@@ -325,6 +325,7 @@ void load()
     get_u8(h, "fcp2", s.fan_c_p[2]);
     get_bool(h, "quietsh", s.quiet_shares);
     get_u8(h, "cerrwarn", s.chip_err_warn_pct);
+    get_str(h, "apitok", s.api_token, sizeof(s.api_token));
     uint8_t nev_fixed = 0;
     nvs_get_u8(h, "nevfix", &nev_fixed);
     nvs_close(h);
@@ -448,6 +449,7 @@ void save()
     nvs_set_u8(h, "fcp2", s.fan_c_p[2]);
     nvs_set_u8(h, "quietsh", s.quiet_shares);
     nvs_set_u8(h, "cerrwarn", s.chip_err_warn_pct);
+    nvs_set_str(h, "apitok", s.api_token);
     nvs_commit(h);
     nvs_close(h);
 }

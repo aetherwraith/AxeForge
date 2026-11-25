@@ -579,6 +579,7 @@ static esp_err_t settings_get(httpd_req_t *req)
     cJSON_AddStringToObject(r, "mqtturl", c.mqtt_url);
     cJSON_AddStringToObject(r, "mqttuser", c.mqtt_user);
     cJSON_AddBoolToObject(r, "mqttpassSet", c.mqtt_pass[0] != 0);
+    cJSON_AddBoolToObject(r, "apiTokenSet", c.api_token[0] != 0);
     cJSON_AddBoolToObject(r, "schedon", c.sched_on);
     cJSON_AddNumberToObject(r, "schedsh", c.sched_start_h);
     cJSON_AddNumberToObject(r, "schedend", c.sched_end_h);
@@ -864,6 +865,8 @@ static esp_err_t settings_post(httpd_req_t *req)
         if (ok) snprintf(c.tg_chat, sizeof(c.tg_chat), "%s", cv->valuestring);
     }
     c.notify_events = (uint8_t) get_int(j, "notify", c.notify_events, 0, 0x3f);
+    cJSON *at = cJSON_GetObjectItem(j, "apiToken");
+    if (cJSON_IsString(at)) snprintf(c.api_token, sizeof(c.api_token), "%s", at->valuestring);
     cJSON *ep = cJSON_GetObjectItem(j, "eprice");
     if (cJSON_IsNumber(ep) && ep->valuedouble >= 0 && ep->valuedouble < 1000) c.energy_price = (float) ep->valuedouble;
     copy_str(j, "currency", c.currency, sizeof(c.currency));
@@ -1565,6 +1568,21 @@ static esp_err_t deny(httpd_req_t *req, const char *why)
     return httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "Forbidden");
 }
 
+static bool bearer_ok(httpd_req_t *req)
+{
+    const char *tok = settings::get().api_token;
+    size_t tlen = strlen(tok);
+    if (!tlen) return false;
+    char hdr[96];
+    if (get_hdr(req, "Authorization", hdr, sizeof(hdr)) != 1) return false;
+    if (strncmp(hdr, "Bearer ", 7) != 0) return false;
+    const char *got = hdr + 7;
+    if (strlen(got) != tlen) return false;
+    uint8_t diff = 0;
+    for (size_t i = 0; i < tlen; i++) diff |= (uint8_t) got[i] ^ (uint8_t) tok[i];
+    return diff == 0;
+}
+
 typedef esp_err_t (*handler_fn)(httpd_req_t *);
 
 static esp_err_t api_guard(httpd_req_t *req)
@@ -1575,7 +1593,11 @@ static esp_err_t api_guard(httpd_req_t *req)
         httpd_resp_set_status(req, "403 Forbidden");
         return httpd_resp_sendstr(req, "Not available on the setup network: connect the miner to your Wi-Fi first.");
     }
-    if (otp::enabled() && strcmp(req->uri, "/api/otp") != 0 &&
+    bool ro_bearer = req->method == HTTP_GET && bearer_ok(req) &&
+                     (strcmp(req->uri, "/api/metrics") == 0 || strcmp(req->uri, "/api/status") == 0 ||
+                      strcmp(req->uri, "/api/swarm") == 0 || strcmp(req->uri, "/api/stats") == 0 ||
+                      strcmp(req->uri, "/api/history") == 0 || strncmp(req->uri, "/api/logs", 9) == 0);
+    if (otp::enabled() && !ro_bearer && strcmp(req->uri, "/api/otp") != 0 &&
         (req->method != HTTP_GET ||
          strcmp(req->uri, "/api/pools") == 0 ||
          strcmp(req->uri, "/api/settings") == 0 ||

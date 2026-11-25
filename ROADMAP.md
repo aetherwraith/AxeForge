@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-2. **Scoped Read-Only / Automation API Token**
-   - Allow a configurable Bearer token for `/api/metrics`, `/api/status`, and `/api/swarm` so Prometheus, Home Assistant, and Swarm polling keep working when 2FA (`otp::enabled()`) is enabled.
-
 3. **Proactive Thermal-Aware Per-Chip Clock Balancing**
    - Balance per-chip clock offsets in `tuner.cpp` against each chip's die temperature headroom (`tmp451::chip(i)` / `chip_temp_own[i]`) before hitting a chain-wide thermal wall.
 

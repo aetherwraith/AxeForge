@@ -543,6 +543,11 @@ hashrate as one chip per pool — or uses them as failover.</div>
 <p class="note" style="margin-top:0">Saves pools, tuning, screen and every other setting to a file you can load back here or on another miner. Pool logins are in the file, so keep it private. Your Wi-Fi, hostname, Discord and Telegram details stay out of it, and overclocking stays locked after a restore.</p>
 <div class="btns"><button class="btn alt" onclick="backup()">Download settings</button><button class="btn alt" onclick="$('restfile').click()">Restore from file</button><input type="file" id="restfile" accept=".json" hidden onchange="restore(this)"></div></div>
 <div class="card" style="margin-top:16px"><h3>Two-factor login <span class="tag" id="otpst">--</span></h3><div id="otpbox"></div></div>
+<div class="card" style="margin-top:16px"><h3>Read-only API token <span class="tag" id="apitokst">off</span></h3>
+<p class="note" style="margin-top:0">Optional Bearer token (<code>Authorization: Bearer &lt;token&gt;</code>) for Prometheus (<code>/api/metrics</code>), Home Assistant, and Swarm/log polling when two-factor login is enabled.</p>
+<div class="btns"><input id="apitok" type="password" placeholder="enter new token" autocomplete="off" style="max-width:260px">
+ <button class="btn sm" onclick="saveApiTok()">Save token</button>
+ <button class="btn alt sm" onclick="clearApiTok()">Clear</button></div></div>
 </section>
 </main></div>
 <div id="toast"></div>
@@ -847,6 +852,7 @@ async function loadCfg(){cfg=await (await fetch('/api/settings')).json();applyTh
   .map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
  $('jobms').placeholder=cfg.jobmsDefault+' (default)';$('vrrow').style.display=cfg.vrSupported?'':'none';
  $('baprow').style.display=cfg.hasBap?'':'none';$('otaguard').checked=!!cfg.otaguard;$('autoupd').checked=!!cfg.autoupdate;$('chipworkers').checked=!!cfg.chipworkers;$('quietsh').checked=!!cfg.quietShares;
+ if($('apitokst')){$('apitokst').textContent=cfg.apiTokenSet?'set':'off';$('apitok').value='';$('apitok').placeholder=cfg.apiTokenSet?'saved (hidden), enter new to replace':'enter new token'}
  {const pu=document.querySelector('[name=priceurl]');pu.value='';pu.placeholder=cfg.priceurlSet?'saved (hidden) · type to replace':'https://example.com/price.json'}$('chiprow').style.display=cfg.chipClock?'':'none';goalUi();priceUi();
  notifyForm();pagesFrom(cfg.pages)}
 document.querySelectorAll('form[data-f]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const d={};
@@ -1136,6 +1142,8 @@ async function saveNotify(){const box=document.querySelectorAll('#nevents input'
  if(box.length&&!n&&!confirm('Every event is switched off: only test messages will be sent. Save anyway?'))return;
  await act('/api/settings',JSON.stringify(body));loadCfg()}
 async function clearNotify(){if(!confirm('Remove the Discord webhook and the Telegram bot?'))return;await act('/api/settings',JSON.stringify({notifyClear:true}));loadCfg()}
+async function saveApiTok(){const t=$('apitok').value.trim();if(!t)return toast('Enter a token first');await act('/api/settings',JSON.stringify({apiToken:t}));loadCfg()}
+async function clearApiTok(){await act('/api/settings',JSON.stringify({apiToken:''}));loadCfg()}
 
 /* ---------------- two-factor login */
 async function otpPost(b){const r=await fetch('/api/otp',{method:'POST',body:JSON.stringify(b)});return r.json().catch(()=>({error:'Request failed'}))}

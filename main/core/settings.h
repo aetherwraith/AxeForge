@@ -97,6 +97,7 @@ struct Settings {
     char tg_chat[24] = "";         // Telegram chat id
     uint8_t notify_events = 0x3f;  // NOTIFY_* bits
     uint8_t chip_err_warn_pct = 5; // per-chip error % alert threshold (0 = off)
+    char api_token[48] = "";       // read-only Bearer token for /api/metrics, /api/status, /api/swarm
 
     bool bap_on = true;            // Bitaxe accessory port
     bool ble_setup = true;         // Bluetooth Wi-Fi setup while in setup mode
