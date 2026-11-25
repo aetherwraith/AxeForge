@@ -169,4 +169,10 @@ uint8_t status_vout() { return read_status(STATUS_VOUT); }
 uint8_t status_input() { return read_status(STATUS_INPUT); }
 uint8_t status_temp() { return read_status(STATUS_TEMPERATURE); }
 
+void log_status(const char *why)
+{
+    ESP_LOGE(TAG, "%s: STATUS=0x%02x IOUT=0x%02x VOUT=0x%02x IN=0x%02x TEMP=0x%02x",
+             why ? why : "fault", status_byte(), status_iout(), status_vout(), status_input(), status_temp());
+}
+
 } // namespace tps53647

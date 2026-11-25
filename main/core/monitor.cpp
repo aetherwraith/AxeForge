@@ -86,7 +86,7 @@ struct FanPI {
 static RTC_NOINIT_ATTR struct {
     uint32_t magic;
     uint32_t count;
-    char text[140];
+    char text[220];
 } s_note;
 
 static void emergency(SysStatus status, const char *why);
@@ -134,11 +134,13 @@ static void emergency(SysStatus status, const char *why)
     ESP_LOGE(TAG, "EMERGENCY: %s", why);
     if (s_note.magic != EMERGENCY_NOTE_MAGIC) s_note.count = 0;
     s_note.count++;
-    snprintf(s_note.text, sizeof(s_note.text), "%s | chip %.1fC, VR %.1fC, %.1f W, %.2f V in, %u MHz @ %u mV, up %lus",
-             why, g_state.chip_temp_max, g_state.vr_temp, g_state.pin, g_state.vin, board::freq_mhz(), board::core_mv(),
-             (unsigned long) g_state.uptime_s);
+    snprintf(s_note.text, sizeof(s_note.text),
+             "%s | chip %.1fC, VR %.1fC, %.1f W, %.2f V in, %.2f V / %.1f A out, %u MHz @ %u mV, up %lus",
+             why, g_state.chip_temp_max, g_state.vr_temp, g_state.pin, g_state.vin, g_state.vout, g_state.iout,
+             board::freq_mhz(), board::core_mv(), (unsigned long) g_state.uptime_s);
     s_note.magic = EMERGENCY_NOTE_MAGIC;
     ESP_LOGE(TAG, "readings: %s", s_note.text);
+    board::log_regulator(why);
     miner::pause(true);
     board::shutdown();
     g_state.status = status;
@@ -161,7 +163,10 @@ static void monitor_task(void *)
     int stall[2] = {0, 0};
     int kick[2] = {0, 0};            // seconds left at 100% for this fan
     bool kicked[2] = {false, false}; // this stop already had its kick
-    float fan_floor[2] = {0, 0};     // raised after a kick brought the fan back
+    float fan_floor[2] = {(float) settings::get().fan_floor_pct[0], (float) settings::get().fan_floor_pct[1]};
+    float base_rpm[2] = {0, 0};
+    int bear_low[2] = {0, 0};
+    bool bear_warned[2] = {false, false};
     bool was_powered = false;
     bool price_paused = s_start_paused;  // chips off on purpose: price limit, or the Bitair's panel
     int resume_fails = 0, resume_wait = 0;
@@ -289,7 +294,9 @@ static void monitor_task(void *)
                     if (kicked[i] && !slow) {
                         // the kick brought it back: it was stopping at its floor, so raise that
                         fan_floor[i] = fminf(fmaxf(fan_floor[i], (float) cfg.fan_min_pct) + FAN_FLOOR_STEP, FAN_FLOOR_MAX);
-                        ESP_LOGW(TAG, "fan %d turns again after a kick (%u rpm): its floor is %.0f%% until the next boot", i + 1,
+                        cfg.fan_floor_pct[i] = (uint8_t) fan_floor[i];
+                        settings::save_later();
+                        ESP_LOGW(TAG, "fan %d turns again after a kick (%u rpm): floor saved at %.0f%%", i + 1,
                                  g_state.fan_rpm[i], fan_floor[i]);
                         kicked[i] = false;
                         kick[i] = 0;
@@ -308,6 +315,20 @@ static void monitor_task(void *)
                 if (!slow) kicked[i] = false;  // turning normally: the next stop gets its own kick
                 stall[i] = slow ? stall[i] + 1 : 0;
                 if (stall[i] >= FAN_STALL_S) stalled = i;
+                if (g_state.fan_present[i] && duty[i] >= 50 && g_state.fan_rpm[i] >= FAN_STALL_RPM) {
+                    float norm = g_state.fan_rpm[i] * (100.0f / duty[i]);
+                    if (base_rpm[i] <= 0) base_rpm[i] = norm;
+                    else if (norm < base_rpm[i] * 0.75f) {
+                        if (++bear_low[i] >= 30 && !bear_warned[i]) {
+                            bear_warned[i] = true;
+                            notify::post(NOTIFY_MAINTENANCE, "fan %d RPM dropped >25%% (%u rpm at %.0f%%): check bearing",
+                                         i + 1, g_state.fan_rpm[i], duty[i]);
+                        }
+                    } else {
+                        bear_low[i] = 0;
+                        base_rpm[i] = base_rpm[i] * 0.99f + norm * 0.01f;
+                    }
+                }
             }
             if (stalled >= 0) {
                 snprintf(why, sizeof(why), "Fan %d stalled (%u rpm at %.0f%%)", stalled + 1, g_state.fan_rpm[stalled],

@@ -323,6 +323,8 @@ void load()
     get_u8(h, "fcp0", s.fan_c_p[0]);
     get_u8(h, "fcp1", s.fan_c_p[1]);
     get_u8(h, "fcp2", s.fan_c_p[2]);
+    get_u8(h, "ffl0", s.fan_floor_pct[0]);
+    get_u8(h, "ffl1", s.fan_floor_pct[1]);
     get_bool(h, "quietsh", s.quiet_shares);
     get_u8(h, "cerrwarn", s.chip_err_warn_pct);
     get_str(h, "apitok", s.api_token, sizeof(s.api_token));
@@ -447,6 +449,8 @@ void save()
     nvs_set_u8(h, "fcp0", s.fan_c_p[0]);
     nvs_set_u8(h, "fcp1", s.fan_c_p[1]);
     nvs_set_u8(h, "fcp2", s.fan_c_p[2]);
+    nvs_set_u8(h, "ffl0", s.fan_floor_pct[0]);
+    nvs_set_u8(h, "ffl1", s.fan_floor_pct[1]);
     nvs_set_u8(h, "quietsh", s.quiet_shares);
     nvs_set_u8(h, "cerrwarn", s.chip_err_warn_pct);
     nvs_set_str(h, "apitok", s.api_token);

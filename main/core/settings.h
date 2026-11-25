@@ -53,6 +53,7 @@ struct Settings {
 
     uint8_t fan_target_c = 60;   // PID target for hottest chip
     uint8_t fan_min_pct = 30;
+    uint8_t fan_floor_pct[2] = {0, 0}; // learned minimum fan % per header after stall recovery
     bool fan_curve_on = false;   // 3-point curve instead of single PI target
     uint8_t fan_c_t[3] = {45, 58, 66};
     uint8_t fan_c_p[3] = {25, 55, 95};

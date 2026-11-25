@@ -27,5 +27,6 @@ uint8_t status_iout();
 uint8_t status_vout();
 uint8_t status_input();
 uint8_t status_temp();
+void log_status(const char *why);
 
 } // namespace tps53647
