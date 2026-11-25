@@ -280,6 +280,13 @@ static bool transport_connect(Pool &p, const PoolCfg &cfg)
     int one = 1;
     if (fd < 0 || setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one)) != 0)
         ESP_LOGW(TAG, "[%d] could not set TCP_NODELAY", p.idx);
+    if (fd >= 0) {
+        int idle = 30, intvl = 10, cnt = 3;
+        setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof(one));
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof(idle));
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl));
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &cnt, sizeof(cnt));
+    }
     return true;
 }
 

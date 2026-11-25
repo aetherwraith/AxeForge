@@ -6,7 +6,8 @@
 #include "esp_heap_caps.h"
 #include "esp_system.h"
 #include "lvgl.h"
-#include "ui/theme.h"  // after lvgl.h: routes colours through the active theme
+#include "ui/theme.h"
+#include "ui/ui_fmt.h"  // after lvgl.h: routes colours through the active theme
 #include "sdkconfig.h"
 
 #include "asic/bm13xx.h"
@@ -111,34 +112,9 @@ static lv_obj_t *s_qr, *s_sys_title, *s_sys_lines;
 static char s_qr_text[192] = "";
 
 // ------------------------------------------------------------------ helpers
-static void fmt_hash(float ghs, char *val, size_t vl, const char **unit)
-{
-    if (ghs >= 1000.0f) {
-        snprintf(val, vl, "%.2f", ghs / 1000.0f);
-        *unit = "TH/s";
-    } else {
-        snprintf(val, vl, "%.0f", ghs);
-        *unit = "GH/s";
-    }
-}
-
-static void fmt_diff(double d, char *out, size_t len)
-{
-    const char *suf[] = {"", "k", "M", "G", "T", "P", "E"};
-    int i = 0;
-    while (d >= 1000.0 && i < 6) {
-        d /= 1000.0;
-        i++;
-    }
-    snprintf(out, len, i ? "%.2f%s" : "%.0f%s", d, suf[i]);
-}
-
-static lv_color_t temp_color(float t, float warn, float hot)
-{
-    if (t >= hot) return C_RED;
-    if (t >= warn) return C_ORANGE;
-    return C_GREEN;
-}
+static void fmt_hash(float ghs, char *val, size_t vl, const char **unit) { ui_fmt::fmt_hash(ghs, val, vl, unit); }
+static void fmt_diff(double d, char *out, size_t len) { ui_fmt::fmt_diff(d, out, len, 2); }
+static lv_color_t temp_color(float t, float warn, float hot) { return ui_fmt::temp_color(t, warn, hot, C_GREEN, C_ORANGE, C_RED); }
 
 static lv_obj_t *label(lv_obj_t *parent, const lv_font_t *font, lv_color_t color, const char *text)
 {

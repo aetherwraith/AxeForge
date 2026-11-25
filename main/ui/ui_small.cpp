@@ -6,7 +6,8 @@
 #include "esp_app_desc.h"
 #include "esp_timer.h"
 #include "lvgl.h"
-#include "ui/theme.h"  // after lvgl.h: routes colours through the active theme
+#include "ui/theme.h"
+#include "ui/ui_fmt.h"  // after lvgl.h: routes colours through the active theme
 #include "sdkconfig.h"
 
 #include "asic/bm13xx.h"
@@ -127,29 +128,9 @@ static lv_obj_t *bar(lv_obj_t *p, int w, lv_color_t c)
     return b;
 }
 
-static void fmt_hash(float ghs, char *v, size_t n, const char **u)
-{
-    if (ghs >= 1000.0f) {
-        snprintf(v, n, "%.2f", ghs / 1000.0f);
-        *u = "TH/s";
-    } else {
-        snprintf(v, n, "%.0f", ghs);
-        *u = "GH/s";
-    }
-}
-
-static void fmt_diff(double d, char *o, size_t n)
-{
-    const char *s[] = {"", "k", "M", "G", "T", "P", "E"};
-    int i = 0;
-    while (d >= 1000.0 && i < 6) {
-        d /= 1000.0;
-        i++;
-    }
-    snprintf(o, n, i ? "%.1f%s" : "%.0f%s", d, s[i]);
-}
-
-static lv_color_t temp_col(float t, float warn, float hot) { return t >= hot ? C_RED : t >= warn ? C_ORANGE : C_GREEN; }
+static void fmt_hash(float ghs, char *v, size_t n, const char **u) { ui_fmt::fmt_hash(ghs, v, n, u); }
+static void fmt_diff(double d, char *o, size_t n) { ui_fmt::fmt_diff(d, o, n, 1); }
+static lv_color_t temp_col(float t, float warn, float hot) { return ui_fmt::temp_color(t, warn, hot, C_GREEN, C_ORANGE, C_RED); }
 
 static lv_obj_t *new_page(lv_obj_t *scr)
 {
@@ -443,41 +424,8 @@ static void refresh_clock()
     else lv_label_set_text_fmt(s_clk_wx, "#9aa8bd %s#  #00e5ff %s %s#", w.error[0] ? w.error : "no weather", hv, hu);
 }
 
-static lv_color_t fee_col(float f)
-{
-    if (theme::ember()) return lv_color_hex(theme::mempool_fee_rgb(f));
-    if (f < 2) return lv_color_hex(0x5b3fd9);
-    if (f < 5) return lv_color_hex(0x3d7bff);
-    if (f < 10) return lv_color_hex(0x1fbfa0);
-    if (f < 20) return lv_color_hex(0x8fd12b);
-    if (f < 50) return lv_color_hex(0xffb21c);
-    return lv_color_hex(0xff3b5c);
-}
-
-static void hash_markup(const char *h, int per_line, char *out, size_t n)
-{
-    int o = 0, z = 0;
-    while (z < 64 && h[z] == '0') z++;
-    bool col = false;
-    for (int i = 0; i < 64 && o < (int) n - 12; i++) {
-        if (i && i % per_line == 0) {
-            if (col) out[o++] = '#';
-            out[o++] = '\n';
-            col = false;
-        }
-        if (i < z && !col) {
-            o += snprintf(out + o, n - o, "#00e5ff ");
-            col = true;
-        }
-        if (i == z && col) {
-            out[o++] = '#';
-            col = false;
-        }
-        out[o++] = h[i];
-    }
-    if (col) out[o++] = '#';
-    out[o] = 0;
-}
+static lv_color_t fee_col(float f) { return ui_fmt::fee_color(f); }
+static void hash_markup(const char *h, int per_line, char *out, size_t n) { ui_fmt::hash_markup(h, per_line, out, n); }
 
 static void refresh_blocks()
 {
