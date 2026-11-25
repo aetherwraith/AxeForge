@@ -933,8 +933,11 @@ static esp_err_t retune_post(httpd_req_t *req)
 // Prometheus text format, for Grafana and friends.
 static esp_err_t metrics_get(httpd_req_t *req)
 {
+    char q[32], v[8];
+    bool with_swarm = httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK &&
+                      httpd_query_key_value(q, "swarm", v, sizeof(v)) == ESP_OK && v[0] == '1';
     const MinerState &s = g_state;
-    const size_t cap = 3072;
+    const size_t cap = with_swarm ? 10240 : 3072;
     char *b = (char *) heap_caps_malloc(cap, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (!b) return httpd_resp_send_500(req);
     size_t n = 0;
@@ -956,6 +959,7 @@ static esp_err_t metrics_get(httpd_req_t *req)
         ADD("axeforge_pool_accepted_total{pool=\"%d\"} %lu\naxeforge_pool_rejected_total{pool=\"%d\"} %lu\n", i + 1, (unsigned long) p.accepted, i + 1, (unsigned long) p.rejected);
         if (p.lag_blocks) ADD("axeforge_pool_block_lag_ms{pool=\"%d\"} %lu\n", i + 1, (unsigned long) p.lag_ms);
     }
+    if (with_swarm && n < cap) n += swarm::metrics_prom(b + n, cap - n);
 #undef ADD
     httpd_resp_set_type(req, "text/plain; version=0.0.4");
     esp_err_t r = httpd_resp_send(req, b, n < cap ? n : cap - 1);

@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-17. **Swarm-Aggregated Prometheus Metrics (`/metrics`)**
-    - Extend `/metrics` with an optional `?swarm=1` query so a single Prometheus/Grafana scrape target can collect metrics for the entire miner fleet.
-
 18. **Auto-Tune Profile Presets (Quiet / Balanced / Max OC)**
     - One-click presets in *Tuning* that configure power cap, fan target, and goal (`efficiency` vs `max hashrate`) together.
 

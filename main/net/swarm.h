@@ -16,5 +16,6 @@ void request_sync(uint8_t mask); // 1=pools, 2=display/theme/clock, 3=both
 void request_bulk_update();    // triggers GitHub release OTA on online AxeForge peers
 bool start_bulk_ota(char *psram_bin, size_t len); // takes ownership of psram_bin
 const char *bulk_status();
+size_t metrics_prom(char *out, size_t cap);
 void flush();                  // the monitor task: writes a changed list to flash
 }

@@ -657,4 +657,33 @@ bool start_bulk_ota(char *psram_bin, size_t len)
 
 const char *bulk_status() { return s_bulk_msg; }
 
+size_t metrics_prom(char *out, size_t cap)
+{
+    size_t n = 0;
+#define MADD(...) n += snprintf(out + n, n < cap ? cap - n : 0, __VA_ARGS__)
+    const MinerState &s = g_state;
+    auto emit = [&](const char *ip, const char *name, const char *kind, bool online,
+                    float ghs, float temp, float power, uint32_t acc, uint32_t rej, double best, uint32_t up) {
+        MADD("axeforge_swarm_online{ip=\"%s\",name=\"%s\",kind=\"%s\"} %d\n", ip, name, kind, online ? 1 : 0);
+        if (!online) return;
+        MADD("axeforge_swarm_hashrate_ghs{ip=\"%s\",name=\"%s\"} %.1f\n", ip, name, ghs);
+        MADD("axeforge_swarm_temp_celsius{ip=\"%s\",name=\"%s\"} %.1f\n", ip, name, temp);
+        MADD("axeforge_swarm_power_watts{ip=\"%s\",name=\"%s\"} %.2f\n", ip, name, power);
+        MADD("axeforge_swarm_shares_accepted_total{ip=\"%s\",name=\"%s\"} %lu\n", ip, name, (unsigned long) acc);
+        MADD("axeforge_swarm_shares_rejected_total{ip=\"%s\",name=\"%s\"} %lu\n", ip, name, (unsigned long) rej);
+        MADD("axeforge_swarm_best_difficulty{ip=\"%s\",name=\"%s\"} %.0f\n", ip, name, best);
+        MADD("axeforge_swarm_uptime_seconds{ip=\"%s\",name=\"%s\"} %lu\n", ip, name, (unsigned long) up);
+    };
+    emit(s.ip, s.hostname[0] ? s.hostname : "this_miner", "AxeForge", true,
+         s.hashrate_ghs, s.chip_temp_max, s.pin, s.shares_accepted, s.shares_rejected, s.best_diff, s.uptime_s);
+    Lock l;
+    for (int i = 0; i < s_count; i++) {
+        const Peer &p = s_peers[i];
+        emit(p.ip, p.name[0] ? p.name : p.ip, p.kind, p.online,
+             p.ghs, p.temp, p.power, p.accepted, p.rejected, p.best, p.uptime_s);
+    }
+#undef MADD
+    return n < cap ? n : (cap ? cap - 1 : 0);
+}
+
 } // namespace swarm
