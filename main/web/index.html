@@ -496,6 +496,12 @@ hashrate as one chip per pool — or uses them as failover.</div>
 <p class="note">Saved tokens stay hidden; leave a field empty to keep it. Telegram: make a bot with @BotFather, send it a message, then use your chat id.</p>
 <div class="btns"><button class="btn" onclick="saveNotify()">Save</button><button class="btn alt" onclick="act('/api/notify')">Send test</button><button class="btn alt" onclick="clearNotify()">Remove all</button></div></div>
 </div>
+<div class="card" style="margin-top:16px"><form data-f><h3>MQTT &amp; Home Assistant</h3>
+<div class="switch" style="padding-top:0"><div><b>Enable MQTT</b><span>Publishes Home Assistant auto-discovery sensors and a mining pause/resume switch.</span></div><input class="tg" type="checkbox" name="mqtton"></div>
+<div class="row" style="margin-top:8px"><div><label>Broker URL</label><input name="mqtturl" placeholder="mqtt://192.168.1.10:1883"></div>
+<div><label>Username</label><input name="mqttuser" placeholder="optional"></div>
+<div><label>Password</label><input name="mqttpass" type="password" placeholder="leave blank to keep" autocomplete="off"></div></div>
+<div class="btns" style="margin-top:10px"><button class="btn">Save MQTT</button></div></form></div>
 <div class="card" style="margin-top:16px"><h3>Backup</h3>
 <p class="note" style="margin-top:0">Saves pools, tuning, screen and every other setting to a file you can load back here or on another miner. Pool logins are in the file, so keep it private. Your Wi-Fi, hostname, Discord and Telegram details stay out of it, and overclocking stays locked after a restore.</p>
 <div class="btns"><button class="btn alt" onclick="backup()">Download settings</button><button class="btn alt" onclick="$('restfile').click()">Restore from file</button><input type="file" id="restfile" accept=".json" hidden onchange="restore(this)"></div></div>

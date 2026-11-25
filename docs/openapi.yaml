@@ -87,6 +87,9 @@ components:
         pricemax: {type: number, description: 'ct/kWh for Energy-Charts, the URL''s own unit otherwise'}
         eprice: {type: number, description: 'per kWh in currency, 0 = market price'}
         currency: {type: string}
+        mqtton: {type: boolean}
+        mqtturl: {type: string}
+        mqttuser: {type: string}
   responses:
     Text:
       description: A short, human-readable result ("Saved.", "Rebooting...")
@@ -441,6 +444,7 @@ paths:
                       vrSupported: {type: boolean, description: vrhz has an effect on this board}
                       discordSet: {type: boolean}
                       tgSet: {type: boolean}
+                      mqttpassSet: {type: boolean}
                       hasBap: {type: boolean, description: the board has the accessory port}
                       hasEth: {type: boolean, description: the build drives a W5500 Ethernet adapter}
                       limits:
@@ -489,6 +493,7 @@ paths:
                     wpass: {type: string, description: Wi-Fi password; empty leaves it unchanged; reboots}
                     discord: {type: string, description: Discord webhook URL}
                     tgtoken: {type: string, description: Telegram bot token}
+                    mqttpass: {type: string, description: MQTT broker password (write-only)}
                     priceurl: {type: string, description: your own price URL (pricesrc 1)}
                     notifyClear: {type: boolean, description: clear the notification list}
                     overclock: {type: boolean, description: 'true needs confirm as well, and a board with overclock.available; false always works'}

@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-4. **MQTT & Home Assistant Auto-Discovery**
-   - Lightweight MQTT telemetry publisher with Home Assistant discovery topics, plus optional control topics (`pause` / `resume` / `power_limit`) for solar-surplus or external thermal/smart-plug automation.
-
 5. **Day/Night & Time-of-Day Scheduling**
    - Local time-of-day profiles (e.g., quiet/low-power mode overnight with capped fan or power limit, full performance during the day) alongside existing electricity-price cutoffs.
 
@@ -22,9 +19,6 @@ Ideas and enhancements beyond the current feature set:
 
 10. **Latency & Stale-Share Aware Failover**
     - Track pool submit latency (`ping_ms`) and consecutive rejected/stale shares to temporarily demote degraded pools in Failover mode.
-
-11. **Settings Backup & Restore (JSON Export/Import)**
-    - Export and import all NVS settings (pools, tuning, custom screen layouts, notifications, display) as a single JSON file from *System* to clone setups across miners or restore after a full flash erase.
 
 12. **Multi-Point Fan Curve**
     - Complement the single PI target (`fantgt`) with a 2–3 point fan curve (quiet floor + ramp slope) so desktop miners stay silent at low ambient temps and ramp smoothly before the 3 °C ceiling boost.

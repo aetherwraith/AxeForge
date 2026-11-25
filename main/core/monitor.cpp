@@ -20,6 +20,7 @@
 #include "hw/purifier.h"
 #include "hw/sensors.h"
 #include "mining/miner.h"
+#include "net/mqtt_ha.h"
 #include "net/notify.h"
 #include "net/price.h"
 #include "net/swarm.h"
@@ -330,7 +331,7 @@ static void monitor_task(void *)
                     continue;
                 }
             }
-            if ((price::want_pause() || purifier::want_off()) && g_state.status != SysStatus::Overheat &&
+            if ((price::want_pause() || purifier::want_off() || mqtt_ha::want_pause()) && g_state.status != SysStatus::Overheat &&
                 g_state.status != SysStatus::Fault) {
                 if (purifier::want_off()) ESP_LOGW(TAG, "purifier %s: chips off until it's switched on", purifier::mode_name());
                 else ESP_LOGW(TAG, "electricity price above the limit: chips off until it drops");
@@ -358,7 +359,7 @@ static void monitor_task(void *)
             g_state.status = wifi::in_setup_mode() ? SysStatus::SetupAP : SysStatus::Paused;
             if (resume_wait > 0) {
                 resume_wait--;
-            } else if (!price::want_pause() && !purifier::want_off()) {
+            } else if (!price::want_pause() && !purifier::want_off() && !mqtt_ha::want_pause()) {
                 uint16_t f = cfg.autotune && cfg.tuned_freq ? cfg.tuned_freq : cfg.freq_mhz;
                 uint16_t mv = cfg.autotune && cfg.tuned_mv ? cfg.tuned_mv : cfg.core_mv;
                 ESP_LOGI(TAG, "%s: powering up at %u MHz", purifier::mode_name()[0] ? "purifier on" : "electricity price back under the limit", f);

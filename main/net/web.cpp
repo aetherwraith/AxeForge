@@ -35,6 +35,7 @@
 #include "mining/miner.h"
 #include "mining/work.h"
 #include "net/mempool.h"
+#include "net/mqtt_ha.h"
 #include "net/weather.h"
 #include "net/swarm.h"
 #include "net/wifi.h"
@@ -548,6 +549,10 @@ static esp_err_t settings_get(httpd_req_t *req)
     cJSON_AddBoolToObject(r, "hasBap", HAS_BAP);
     cJSON_AddBoolToObject(r, "blesetup", c.ble_setup);
     cJSON_AddBoolToObject(r, "hasEth", HAS_ETH);
+    cJSON_AddBoolToObject(r, "mqtton", c.mqtt_on);
+    cJSON_AddStringToObject(r, "mqtturl", c.mqtt_url);
+    cJSON_AddStringToObject(r, "mqttuser", c.mqtt_user);
+    cJSON_AddBoolToObject(r, "mqttpassSet", c.mqtt_pass[0] != 0);
     cJSON *lim = cJSON_AddObjectToObject(r, "limits");
     cJSON_AddNumberToObject(lim, "minFreq", AF_MIN_FREQ_MHZ);
     cJSON_AddNumberToObject(lim, "maxFreq", gates::max_freq());
@@ -826,6 +831,18 @@ static esp_err_t settings_post(httpd_req_t *req)
     c.ble_setup = get_bool(j, "blesetup", c.ble_setup);
     c.ota_guard = get_bool(j, "otaguard", c.ota_guard);
     c.auto_update = get_bool(j, "autoupdate", c.auto_update);
+
+    // MQTT & Home Assistant
+    bool mqtt_on = get_bool(j, "mqtton", c.mqtt_on);
+    bool mqtt_changed = mqtt_on != c.mqtt_on;
+    c.mqtt_on = mqtt_on;
+    mqtt_changed |= copy_str(j, "mqtturl", c.mqtt_url, sizeof(c.mqtt_url));
+    mqtt_changed |= copy_str(j, "mqttuser", c.mqtt_user, sizeof(c.mqtt_user));
+    cJSON *mp = cJSON_GetObjectItem(j, "mqttpass");
+    if (cJSON_IsString(mp) && mp->valuestring[0]) {
+        mqtt_changed |= copy_str(j, "mqttpass", c.mqtt_pass, sizeof(c.mqtt_pass));
+    }
+    if (mqtt_changed) mqtt_ha::reconfigure();
 
     // electricity price
     c.price_on = get_bool(j, "priceon", c.price_on);

@@ -30,6 +30,7 @@
 #include "mining/stats.h"
 #include "net/eth.h"
 #include "net/fwupdate.h"
+#include "net/mqtt_ha.h"
 #include "net/notify.h"
 #include "net/otp.h"
 #include "net/price.h"
@@ -173,6 +174,7 @@ extern "C" void app_main(void)
     weather::start();
     mempool::start();
     price::start();
+    mqtt_ha::start();
     fwupdate::start();
 
     if (e != board::Error::None) {

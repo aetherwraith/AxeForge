@@ -114,6 +114,12 @@ struct Settings {
     // 0 = use the market price from the price mode, if that is on
     float energy_price = 0;
     char currency[5] = "€";
+
+    // MQTT & Home Assistant auto-discovery
+    bool mqtt_on = false;
+    char mqtt_url[96] = "";
+    char mqtt_user[48] = "";
+    char mqtt_pass[48] = "";
 };
 
 // notify_events bits

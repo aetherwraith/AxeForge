@@ -280,6 +280,10 @@ void load()
     get_float(h, "pricemax", s.price_max);
     get_float(h, "eprice", s.energy_price);
     get_str(h, "currency", s.currency, sizeof(s.currency));
+    get_bool(h, "mqtton", s.mqtt_on);
+    get_str(h, "mqtturl", s.mqtt_url, sizeof(s.mqtt_url));
+    get_str(h, "mqttuser", s.mqtt_user, sizeof(s.mqtt_user));
+    get_str(h, "mqttpass", s.mqtt_pass, sizeof(s.mqtt_pass));
     uint8_t nev_fixed = 0;
     nvs_get_u8(h, "nevfix", &nev_fixed);
     nvs_close(h);
@@ -384,6 +388,10 @@ void save()
     set_float(h, "pricemax", s.price_max);
     set_float(h, "eprice", s.energy_price);
     nvs_set_str(h, "currency", s.currency);
+    nvs_set_u8(h, "mqtton", s.mqtt_on);
+    nvs_set_str(h, "mqtturl", s.mqtt_url);
+    nvs_set_str(h, "mqttuser", s.mqtt_user);
+    nvs_set_str(h, "mqttpass", s.mqtt_pass);
     nvs_commit(h);
     nvs_close(h);
 }
