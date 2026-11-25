@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-3. **Adaptive Job-Interval / Extranonce2 Rollover Tuning**
-   - Dynamically scale the job interval based on live chip hashrate and 32-bit nonce space exhaustion time so high-overclock single-chip and multi-chip boards never wrap nonce space before the next job arrives, without wasting UART bandwidth at lower clocks.
-
 4. **MQTT & Home Assistant Auto-Discovery**
    - Lightweight MQTT telemetry publisher with Home Assistant discovery topics, plus optional control topics (`pause` / `resume` / `power_limit`) for solar-surplus or external thermal/smart-plug automation.
 

@@ -234,8 +234,20 @@ static void job_task(void *)
         g_state.pool_diff = (uint32_t) ceil(s.info.difficulty);
 
         // a new block wakes us early so stale work is replaced immediately
-        uint16_t job_ms = settings::get().job_ms;
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(job_ms ? job_ms : JOB_INTERVAL_MS));
+        uint16_t wait_ms = settings::get().job_ms;
+        if (!wait_ms) {
+            int chips = g_state.chips_detected > 0 ? g_state.chips_detected : AF_NUM_ASICS;
+            float ghs = g_state.expected_ghs > g_state.hashrate_ghs ? g_state.expected_ghs : g_state.hashrate_ghs;
+            float per_chip = chips > 0 ? ghs / chips : 0.0f;
+            if (per_chip > 1.0f) {
+                uint32_t ms = w.version_mask ? (uint32_t) (JOB_INTERVAL_MS * 1000.0f / per_chip)
+                                             : (uint32_t) (3221.0f * 1000.0f / per_chip);
+                wait_ms = (uint16_t) (ms < 250 ? 250 : ms > JOB_INTERVAL_MS ? JOB_INTERVAL_MS : ms);
+            } else {
+                wait_ms = JOB_INTERVAL_MS;
+            }
+        }
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_ms));
     }
 }
 
