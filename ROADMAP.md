@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-2. **Silicon Quality / Binning Fingerprint ("Chip Score")**
-   - Record each chip's measured `MHz / mV / W / err%` summary during auto-tune (climb, trim, and per-chip clock steps) and surface a per-chip silicon score and efficiency summary on the *ASIC chips* web tab to help spot weak paste/cooling or compare boards.
-
 3. **Adaptive Job-Interval / Extranonce2 Rollover Tuning**
    - Dynamically scale the job interval based on live chip hashrate and 32-bit nonce space exhaustion time so high-overclock single-chip and multi-chip boards never wrap nonce space before the next job arrives, without wasting UART bandwidth at lower clocks.
 

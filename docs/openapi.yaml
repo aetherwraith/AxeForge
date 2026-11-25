@@ -169,7 +169,7 @@ paths:
                         status: {type: string, description: what the connection is doing, in words}
                   chips:
                     type: array
-                    items: {type: object, properties: {ghs: {type: number}, errGhs: {type: number}, temp: {type: number}, ownSensor: {type: boolean, description: the temperature is this chip's own sensor, not the board's}, mhz: {type: integer, description: this chip's clock, the board clock plus its per-chip offset}}}
+                    items: {type: object, properties: {ghs: {type: number}, errGhs: {type: number}, temp: {type: number}, ownSensor: {type: boolean, description: the temperature is this chip's own sensor, not the board's}, mhz: {type: integer, description: this chip's clock, the board clock plus its per-chip offset}, score: {type: integer, description: silicon quality score 1..100 (0 = untuned)}, jth: {type: number, description: measured efficiency at lock in J/TH}}}
                   tuner:
                     type: object
                     description: Auto-tune state. The wall and peak fields cover the current search only; a lock restored at boot has none.

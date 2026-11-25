@@ -47,6 +47,8 @@ struct TunerState {
     uint16_t wall_freq = 0, wall_mv = 0;  // the point that failed, or the last stable one at a gate
     bool wall_watch = false;              // the lock itself failed later, not the climb
     float peak_w = 0, peak_chip_c = 0, peak_vr_c = 0;  // the highest readings over this search's windows
+    uint8_t chip_score[AF_NUM_ASICS] = {};             // 0 = untuned, 1..100 silicon quality score
+    float chip_jth[AF_NUM_ASICS] = {};                 // measured J/TH per chip at lock
 };
 
 struct WeatherDay {

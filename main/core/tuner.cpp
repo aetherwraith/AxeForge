@@ -261,6 +261,23 @@ static void lock_point(uint16_t freq, uint16_t mv, float ghs)
     g_state.tuner.best_freq = freq;
     g_state.tuner.best_mv = mv;
     g_state.tuner.best_ghs = ghs;
+    const int chips = g_state.chips_detected < AF_NUM_ASICS ? g_state.chips_detected : AF_NUM_ASICS;
+    const float max_f = (float) board::limits().max_freq_mhz;
+    const float per_w = (chips > 0 && g_state.pin > 0) ? g_state.pin / chips : 0.0f;
+    for (int i = 0; i < chips; i++) {
+        float cf = (float) (freq + cfg.chip_off[i]);
+        float cg = miner::window_chip_ghs(i);
+        if (cg <= 0 && ghs > 0) cg = ghs / chips;
+        float ce = miner::window_chip_err(i);
+        g_state.tuner.chip_jth[i] = (per_w > 0 && cg > 0) ? per_w / (cg / 1000.0f) : 0.0f;
+        float f_pts = max_f > 0 ? 70.0f * (cf / max_f) : 0.0f;
+        if (f_pts > 70.0f) f_pts = 70.0f;
+        float v_pts = mv < 1300 ? (1300.0f - mv) * (20.0f / 300.0f) : 0.0f;
+        if (v_pts > 20.0f) v_pts = 20.0f;
+        float e_pts = ce < 1.0f ? (1.0f - ce) * 10.0f : 0.0f;
+        int sc = (int) (f_pts + v_pts + e_pts + 0.5f);
+        g_state.tuner.chip_score[i] = (uint8_t) (sc < 1 ? 1 : sc > 100 ? 100 : sc);
+    }
     ESP_LOGI(TAG, "locked %u MHz @ %u mV (%.0f GH/s)", freq, mv, ghs);
 }
 

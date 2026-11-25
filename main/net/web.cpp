@@ -439,6 +439,8 @@ static esp_err_t status_get(httpd_req_t *req)
         cJSON_AddNumberToObject(c, "temp", s.chip_temp[i]);
         cJSON_AddBoolToObject(c, "ownSensor", s.chip_temp_own[i]);
         cJSON_AddNumberToObject(c, "mhz", s.freq_mhz + asic::chip_offset(i));
+        cJSON_AddNumberToObject(c, "score", t.chip_score[i]);
+        cJSON_AddNumberToObject(c, "jth", (int) (t.chip_jth[i] * 10.0f + 0.5f) / 10.0);
         cJSON_AddItemToArray(chips, c);
     }
 
