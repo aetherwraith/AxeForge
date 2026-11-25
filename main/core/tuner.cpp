@@ -171,11 +171,24 @@ static bool apply(uint16_t freq, uint16_t mv)
     return ok;
 }
 
+static float chip_ceiling()
+{
+    uint8_t c = settings::get().tuner_chip_c;
+    return (c >= 40 && c < CONFIG_AF_MAX_CHIP_TEMP) ? (float) c : (float) CONFIG_AF_MAX_CHIP_TEMP;
+}
+
+static float vr_ceiling()
+{
+    uint8_t c = settings::get().tuner_vr_c;
+    float board_vr = board::limits().vr_ceil_c;
+    return (c >= 50 && (float) c < board_vr) ? (float) c : board_vr;
+}
+
 static Result measure(int warmup_s, int window_s, float max_err, float max_chip_err)
 {
     Result r = {Verdict::Stable, 0, 0, 0, 0, 0, 0, 0, 0};
-    const float t_ceil = CONFIG_AF_MAX_CHIP_TEMP;
-    const float vr_ceil = board::limits().vr_ceil_c;
+    const float t_ceil = chip_ceiling();
+    const float vr_ceil = vr_ceiling();
     const float p_ceil = power_ceiling();
     const int total = warmup_s + window_s;
     int hot = 0, watts = 0;
@@ -565,6 +578,19 @@ static void tuner_task(void *)
                 if (r.ghs > 0) g_state.tuner.best_ghs = r.ghs;
                 int slow = slow_raised_chip(best_f);
                 if (slow >= 0) lower_chip(slow, "Slow");
+                if (g_state.tuner.wall == TunerWall::Thermal && (cfg.tuner_chip_c > 0 || cfg.tuner_vr_c > 0) &&
+                    r.tmax <= chip_ceiling() - 3.0f && r.vrmax <= vr_ceiling() - 3.0f &&
+                    r.pmax <= power_ceiling() * 0.95f) {
+                    uint16_t next_f = board::clamp_freq(best_f + FREQ_STEP);
+                    if (next_f > best_f) {
+                        best_f = next_f;
+                        snprintf(g_state.tuner.note, sizeof(g_state.tuner.note), "Cool headroom: stepping up to %u MHz",
+                                 best_f);
+                        ESP_LOGI(TAG, "%s", g_state.tuner.note);
+                        apply(best_f, best_mv);
+                        lock_point(best_f, best_mv, r.ghs);
+                    }
+                }
                 continue;
             }
             int wc = -1;
@@ -574,7 +600,7 @@ static void tuner_task(void *)
                 continue;
             }
             g_state.tuner.phase = TunerPhase::Backoff;
-            if (climbed) wall(verdict_wall(r.verdict), best_f, best_mv, true);  // the lock itself failed: that is the wall now
+            if (climbed || r.verdict == Verdict::Thermal) wall(verdict_wall(r.verdict), best_f, best_mv, true);  // the lock itself failed: that is the wall now
             best_f = board::clamp_freq(best_f - FREQ_STEP);
             snprintf(g_state.tuner.note, sizeof(g_state.tuner.note), "Drift (%s): backing off to %u MHz",
                      verdict_text(r.verdict), best_f);

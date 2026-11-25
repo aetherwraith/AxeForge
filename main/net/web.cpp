@@ -514,6 +514,8 @@ static esp_err_t settings_get(httpd_req_t *req)
     cJSON_AddNumberToObject(r, "eprice", c.energy_price);
     cJSON_AddStringToObject(r, "currency", c.currency);
     cJSON_AddNumberToObject(r, "fantgt", c.fan_target_c);
+    cJSON_AddNumberToObject(r, "tchipc", c.tuner_chip_c);
+    cJSON_AddNumberToObject(r, "tvrc", c.tuner_vr_c);
     cJSON_AddNumberToObject(r, "fanmin", c.fan_min_pct);
     cJSON_AddNumberToObject(r, "fmode0", c.fan_mode[0]);
     cJSON_AddNumberToObject(r, "fmode1", c.fan_mode[1]);
@@ -727,6 +729,12 @@ static esp_err_t settings_post(httpd_req_t *req)
     c.tune_goal = (uint8_t) goal;
     c.power_cap_w = (uint16_t) cap;
     c.chip_tune = chip_tune;
+    int tchip = get_int(j, "tchipc", c.tuner_chip_c, 0, CONFIG_AF_MAX_CHIP_TEMP);
+    if (tchip > 0 && tchip < 40) tchip = 40;
+    int tvr = get_int(j, "tvrc", c.tuner_vr_c, 0, (int) board::limits().vr_ceil_c);
+    if (tvr > 0 && tvr < 50) tvr = 50;
+    c.tuner_chip_c = (uint8_t) tchip;
+    c.tuner_vr_c = (uint8_t) tvr;
     c.fan_target_c = (uint8_t) get_int(j, "fantgt", c.fan_target_c, 40, 70);
     c.fan_min_pct = (uint8_t) get_int(j, "fanmin", c.fan_min_pct, 10, 100);
     c.fan_mode[0] = (uint8_t) get_int(j, "fmode0", c.fan_mode[0], 0, 1);

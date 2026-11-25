@@ -230,6 +230,8 @@ void load()
     get_u8(h, "tgoal", s.tune_goal);
     get_bool(h, "oc", s.overclock);
     get_u16(h, "pcap", s.power_cap_w);
+    get_u8(h, "tchipc", s.tuner_chip_c);
+    get_u8(h, "tvrc", s.tuner_vr_c);
     get_bool(h, "chiptune", s.chip_tune);
     {
         size_t n = sizeof(s.chip_off);
@@ -336,6 +338,8 @@ void save()
     nvs_set_u8(h, "tgoal", s.tune_goal);
     nvs_set_u8(h, "oc", s.overclock);
     nvs_set_u16(h, "pcap", s.power_cap_w);
+    nvs_set_u8(h, "tchipc", s.tuner_chip_c);
+    nvs_set_u8(h, "tvrc", s.tuner_vr_c);
     nvs_set_u8(h, "chiptune", s.chip_tune);
     nvs_set_blob(h, "chipoff", s.chip_off, sizeof(s.chip_off));
     nvs_set_u8(h, "fantgt", s.fan_target_c);

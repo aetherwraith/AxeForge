@@ -46,6 +46,8 @@ components:
         mv: {type: integer, description: core mV, when auto-tune is off}
         tgoal: {type: integer, description: '0 hashrate, 1 power limit, 2 efficiency'}
         pcap: {type: number, description: 'W, 0 = board limit'}
+        tchipc: {type: integer, description: 'max ASIC temp for tuner, °C (0 = board limit)'}
+        tvrc: {type: integer, description: 'max VR temp for tuner, °C (0 = board limit)'}
         chiptune: {type: boolean, description: per-chip clock trimming}
         chipworkers: {type: boolean, description: 'Stratum V1: each chip submits under its own worker name'}
         otaguard: {type: boolean, description: roll back a new firmware that doesn't come up mining}
