@@ -81,6 +81,8 @@ struct PoolState {
     uint32_t diff = 0;
     uint32_t accepted = 0;
     uint32_t rejected = 0;
+    uint32_t stale = 0;
+    uint32_t dup = 0;
     double best = 0;
     double accepted_work = 0;    // sum of accepted share difficulty (for hashrate)
     float ghs = 0;               // estimate from accepted work over the last ~10 min
@@ -214,6 +216,9 @@ struct MinerState {
     uint32_t pool_diff = 0;
     uint32_t shares_accepted = 0;
     uint32_t shares_rejected = 0;
+    uint32_t shares_stale = 0;
+    uint32_t shares_dup = 0;
+    uint32_t hw_errors = 0;
     double best_diff = 0;
     double session_best = 0;
     uint32_t block_height = 0;

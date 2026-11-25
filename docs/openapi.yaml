@@ -166,6 +166,8 @@ paths:
                         connected: {type: boolean}
                         accepted: {type: integer}
                         rejected: {type: integer}
+                        stale: {type: integer}
+                        dup: {type: integer}
                         payout: {type: integer, description: '0 unknown, 1 username is not an address, 2 pays you, 3 does not'}
                         payoutPct: {type: integer}
                         payoutBlocked: {type: boolean, description: the payout check holds work back from this pool}
@@ -340,6 +342,9 @@ paths:
                       diff: {type: number}
                       accepted: {type: integer}
                       rejected: {type: integer}
+                      stale: {type: integer}
+                      dup: {type: integer}
+                      hwErrors: {type: integer}
                       bestDiff: {type: number, description: best share ever, kept across reboots}
                       sessionBest: {type: number, description: best share since boot}
                       height: {type: integer}

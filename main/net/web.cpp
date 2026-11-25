@@ -322,6 +322,9 @@ static esp_err_t status_get(httpd_req_t *req)
     cJSON_AddNumberToObject(pool, "diff", s.pool_diff);
     cJSON_AddNumberToObject(pool, "accepted", s.shares_accepted);
     cJSON_AddNumberToObject(pool, "rejected", s.shares_rejected);
+    cJSON_AddNumberToObject(pool, "stale", s.shares_stale);
+    cJSON_AddNumberToObject(pool, "dup", s.shares_dup);
+    cJSON_AddNumberToObject(pool, "hwErrors", s.hw_errors);
     cJSON_AddNumberToObject(pool, "bestDiff", s.best_diff);
     cJSON_AddNumberToObject(pool, "sessionBest", s.session_best);
     cJSON_AddNumberToObject(pool, "height", s.block_height);
@@ -340,6 +343,8 @@ static esp_err_t status_get(httpd_req_t *req)
         cJSON_AddNumberToObject(o, "diff", ps.diff);
         cJSON_AddNumberToObject(o, "accepted", ps.accepted);
         cJSON_AddNumberToObject(o, "rejected", ps.rejected);
+        cJSON_AddNumberToObject(o, "stale", ps.stale);
+        cJSON_AddNumberToObject(o, "dup", ps.dup);
         cJSON_AddNumberToObject(o, "best", ps.best);
         cJSON_AddNumberToObject(o, "ghs", ps.ghs);
         cJSON_AddNumberToObject(o, "workPct", ps.work_pct);

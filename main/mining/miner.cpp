@@ -292,6 +292,7 @@ static void on_counter(int chip, uint32_t cnt, bool is_error)
     portENTER_CRITICAL(&s_win_mux);
     if (is_error) {
         g_state.chip_err_ghs[chip] = ghs;
+        g_state.hw_errors += dc;
         s_win_err[chip] += dc;
     } else {
         g_state.chip_ghs[chip] = ghs;

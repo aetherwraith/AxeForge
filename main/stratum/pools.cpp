@@ -260,6 +260,15 @@ static void on_share_result(Pool &p, bool ok, const char *err)
     } else {
         ps.rejected++;
         g_state.shares_rejected++;
+        if (err) {
+            if (strcasestr(err, "stale") || strcasestr(err, "job")) {
+                ps.stale++;
+                g_state.shares_stale++;
+            } else if (strcasestr(err, "dup")) {
+                ps.dup++;
+                g_state.shares_dup++;
+            }
+        }
         if (ps.consec_rej < 255) ps.consec_rej++;
         if (ps.consec_rej >= 5 || ps.ping_ms >= 2000) {
             ps.demote_until_s = g_state.uptime_s + 120;

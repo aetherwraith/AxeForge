@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-13. **Stale vs. Hardware-Error Breakdown**
-    - Track and display stale/duplicate share counts separately from ASIC hardware errors on *Pools* and *Dashboard* to distinguish network/pool lag from unstable overclocks.
-
 14. **Build Commit / Timestamp on *System → Device***
     - Expose the short git SHA and build timestamp alongside the firmware version so custom/forked builds are immediately distinguishable in the web UI and Swarm table.
 
