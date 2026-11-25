@@ -43,7 +43,7 @@ idf_component_register(
     INCLUDE_DIRS "." ${AF_GEN_DIR}
     REQUIRES driver esp_wifi esp_netif nvs_flash esp_http_server esp_timer
              esp_lcd json mbedtls lwip esp_app_format app_update esp_http_client esp_https_ota
-             tcp_transport esp-tls stratum_v2 esp_adc esp_eth wifi_provisioning bt wpa_supplicant
+             tcp_transport esp-tls stratum_v2 esp_adc esp_eth wifi_provisioning bt wpa_supplicant mdns
 )
 # The web UI ships gzipped: ~130 kB of HTML/JS becomes ~45 kB of flash, and every
 # page load sends that instead. mtime=0 keeps the build reproducible.
