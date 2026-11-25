@@ -312,6 +312,7 @@ void load()
     get_u8(h, "fcp0", s.fan_c_p[0]);
     get_u8(h, "fcp1", s.fan_c_p[1]);
     get_u8(h, "fcp2", s.fan_c_p[2]);
+    get_bool(h, "quietsh", s.quiet_shares);
     uint8_t nev_fixed = 0;
     nvs_get_u8(h, "nevfix", &nev_fixed);
     nvs_close(h);
@@ -432,6 +433,7 @@ void save()
     nvs_set_u8(h, "fcp0", s.fan_c_p[0]);
     nvs_set_u8(h, "fcp1", s.fan_c_p[1]);
     nvs_set_u8(h, "fcp2", s.fan_c_p[2]);
+    nvs_set_u8(h, "quietsh", s.quiet_shares);
     nvs_commit(h);
     nvs_close(h);
 }

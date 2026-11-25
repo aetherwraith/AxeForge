@@ -543,6 +543,7 @@ static esp_err_t settings_get(httpd_req_t *req)
     cJSON_AddNumberToObject(r, "fcp0", c.fan_c_p[0]);
     cJSON_AddNumberToObject(r, "fcp1", c.fan_c_p[1]);
     cJSON_AddNumberToObject(r, "fcp2", c.fan_c_p[2]);
+    cJSON_AddBoolToObject(r, "quietShares", c.quiet_shares);
     cJSON_AddNumberToObject(r, "fmode0", c.fan_mode[0]);
     cJSON_AddNumberToObject(r, "fmode1", c.fan_mode[1]);
     cJSON_AddNumberToObject(r, "fman0", c.fan_manual[0]);
@@ -779,6 +780,7 @@ static esp_err_t settings_post(httpd_req_t *req)
     c.fan_c_p[0] = (uint8_t) get_int(j, "fcp0", c.fan_c_p[0], 10, 100);
     c.fan_c_p[1] = (uint8_t) get_int(j, "fcp1", c.fan_c_p[1], 10, 100);
     c.fan_c_p[2] = (uint8_t) get_int(j, "fcp2", c.fan_c_p[2], 10, 100);
+    c.quiet_shares = get_bool(j, "quietShares", c.quiet_shares);
     c.fan_mode[0] = (uint8_t) get_int(j, "fmode0", c.fan_mode[0], 0, 1);
     c.fan_mode[1] = (uint8_t) get_int(j, "fmode1", c.fan_mode[1], 0, 1);
     c.fan_manual[0] = (uint8_t) get_int(j, "fman0", c.fan_manual[0], 20, 100);

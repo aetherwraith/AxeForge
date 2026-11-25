@@ -2,9 +2,6 @@
 
 Ideas and enhancements beyond the current feature set:
 
-15. **Configurable Log / BitHalo Quiet Mode**
-    - Allow toggling or rate-limiting per-share `share accepted` logging on UART0 for users on ultra-low-difficulty pools where the BitHalo pulses too frequently.
-
 16. **24h Telemetry CSV / JSON Export**
     - Allow downloading the 24-hour hashrate, chip temperature, and power history buffer as CSV from *Dashboard* for offline graphing or comparing cooling mods.
 

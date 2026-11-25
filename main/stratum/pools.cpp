@@ -245,7 +245,11 @@ static void on_share_result(Pool &p, bool ok, const char *err)
         ps.demote_until_s = 0;
         ps.accepted++;
         g_state.shares_accepted++;
-        ESP_LOGI(TAG, "[%d] share accepted", p.idx);
+        static uint32_t s_last_share_log_s = 0;
+        if (!settings::get().quiet_shares || g_state.uptime_s - s_last_share_log_s >= 30) {
+            s_last_share_log_s = g_state.uptime_s;
+            ESP_LOGI(TAG, "[%d] share accepted", p.idx);
+        }
         ps.last_share_s = g_state.uptime_s;
         ps.accepted_work += p.diff;
         int64_t now = esp_timer_get_time();

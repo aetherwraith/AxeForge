@@ -61,6 +61,7 @@ components:
         fcp0: {type: integer, description: fan curve point 1 speed (%)}
         fcp1: {type: integer, description: fan curve point 2 speed (%)}
         fcp2: {type: integer, description: fan curve point 3 speed (%)}
+        quietShares: {type: boolean, description: rate-limit per-share accepted logs on UART0 (BitHalo quiet mode)}
         fmode0: {type: integer, description: fan 1 mode}
         fmode1: {type: integer, description: fan 2 mode}
         fman0: {type: integer, description: 'fan 1 manual speed, %'}

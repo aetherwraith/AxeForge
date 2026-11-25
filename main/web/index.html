@@ -507,6 +507,7 @@ hashrate as one chip per pool — or uses them as failover.</div>
 <div class="switch"><div><b>Install updates automatically</b><span>The miner checks GitHub for a new AxeForge release every 6 hours and installs it by itself, then restarts. Off: the dashboard tells you and you press Update now.</span></div><input class="tg" type="checkbox" id="autoupd" onchange="act('/api/settings',JSON.stringify({autoupdate:this.checked}))"></div>
 <div class="btns" style="margin:4px 0 10px"><button class="btn alt sm" type="button" onclick="act('/api/update','check')">Check for updates</button><button class="btn sm" type="button" id="updnow2" style="display:none" onclick="updNow()">Update now</button><span class="note" id="updmsg" style="margin:0"></span></div>
 <div class="switch"><div><b>Roll back a bad update</b><span>If new firmware crashes at start-up twice, or is online but not mining 10 minutes after boot, the previous firmware starts again. It is kept once it has mined normally for 2 minutes.</span></div><input class="tg" type="checkbox" id="otaguard" onchange="act('/api/settings',JSON.stringify({otaguard:this.checked}))"></div>
+<div class="switch"><div><b>Quiet share logs (BitHalo mode)</b><span>Rate-limit "share accepted" UART0 logs to once every 30 s so ultra-low-difficulty pools don't spam logs or pulse BitHalo LEDs continuously.</span></div><input class="tg" type="checkbox" id="quietsh" onchange="act('/api/settings',JSON.stringify({quietShares:this.checked}))"></div>
 <div id="otabox" style="display:none"><p class="note">This firmware is still on probation.</p><div class="btns"><button class="btn alt sm" onclick="act('/api/ota/keep')">Keep this version</button></div></div></div>
 </div>
 <div class="grid g2" style="margin-top:16px">
@@ -828,7 +829,7 @@ async function loadCfg(){cfg=await (await fetch('/api/settings')).json();setThem
  $('lims').innerHTML=[[L.maxFreq+' MHz','max clock'],[L.minMv+'–'+L.maxMv+' mV','core voltage'],[L.chipCeil+'°C','chip ceiling'],[L.chipCrit+'°C','chip shutdown'],[L.vrCeil+'°C','VR ceiling'],[L.vrCrit+'°C','VR shutdown'],[(+L.maxPower).toFixed(L.maxPower%1?1:0)+' W','max power']]
   .map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
  $('jobms').placeholder=cfg.jobmsDefault+' (default)';$('vrrow').style.display=cfg.vrSupported?'':'none';
- $('baprow').style.display=cfg.hasBap?'':'none';$('otaguard').checked=!!cfg.otaguard;$('autoupd').checked=!!cfg.autoupdate;$('chipworkers').checked=!!cfg.chipworkers;
+ $('baprow').style.display=cfg.hasBap?'':'none';$('otaguard').checked=!!cfg.otaguard;$('autoupd').checked=!!cfg.autoupdate;$('chipworkers').checked=!!cfg.chipworkers;$('quietsh').checked=!!cfg.quietShares;
  {const pu=document.querySelector('[name=priceurl]');pu.value='';pu.placeholder=cfg.priceurlSet?'saved (hidden) · type to replace':'https://example.com/price.json'}$('chiprow').style.display=cfg.chipClock?'':'none';goalUi();priceUi();
  notifyForm();pagesFrom(cfg.pages)}
 document.querySelectorAll('form[data-f]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const d={};

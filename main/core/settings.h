@@ -98,6 +98,7 @@ struct Settings {
 
     bool bap_on = true;            // Bitaxe accessory port
     bool ble_setup = true;         // Bluetooth Wi-Fi setup while in setup mode
+    bool quiet_shares = false;     // rate-limit per-share "share accepted" UART logs (BitHalo quiet mode)
 
     // after a web update, go back to the previous firmware if the new one
     // crashes at start-up or doesn't mine within 10 minutes
